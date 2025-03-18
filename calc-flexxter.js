@@ -20,9 +20,9 @@ document.addEventListener("DOMContentLoaded", function () {
             staff: 0,
             discount: 0.25, // 25% discount
             addons: [
-                'Tickets-und-Mängel', 'Bautagebücher', 'Mitarbeiter-Einsatzplanung',
-                'Digitale-Formulare', 'Künstliche-Intelligenz', 'Individuelle-Projektfelder', 
-                'Basispläne-für-Bauzeitenpläne', 'Projektkosten', 'WhatsApp-Business'
+                'Tickets-und-M-ngel', 'Bautageb-cher', 'Mitarbeiter-Einsatzplanung',
+                'Digitale-Formulare', 'K-nstliche-Intelligenz', 'Individuelle-Projektfelder', 
+                'Basispl-ne-f-r-Bauzeitenpl-ne', 'Projektkosten', 'WhatsApp-Business'
             ]
         },
         'baunternehmen': {
