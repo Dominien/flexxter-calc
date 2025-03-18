@@ -69,4 +69,4 @@ To add new add-ons or bundles:
 
 ## License
 
-© FlexXter - All rights reserved
+© Flexxter - All rights reserved
