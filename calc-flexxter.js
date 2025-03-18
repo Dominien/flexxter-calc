@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function () {
         monthlyVisual.classList.remove('w--redirected-checked');
     }
     
-    // Modified updateResult function to handle bundle discounts
+    // Modified updateResult function to handle bundle discounts and extra add-ons
     function updateResult() {
         let x = parseFloat(licencesInput.textContent) || 0;
         
@@ -207,27 +207,57 @@ document.addEventListener("DOMContentLoaded", function () {
         
         let basePrice = isYearlyChecked ? 49.90 : 59.90;
         let result = x * basePrice;
+        let bundleAddOns = [];
+        let extraAddOns = 0;
         
+        // Determine which bundle is selected and get its add-ons
+        let selectedBundle = null;
+        let selectedBundleDiscount = 0;
+        
+        if (architektBundle.checked) {
+            selectedBundle = 'architekt';
+            selectedBundleDiscount = bundles['architekt'].discount;
+            bundleAddOns = bundles['architekt'].addons;
+        } else if (bauunternehmenBundle.checked) {
+            selectedBundle = 'baunternehmen';
+            selectedBundleDiscount = bundles['baunternehmen'].discount;
+            bundleAddOns = bundles['baunternehmen'].addons;
+        } else if (flexxterFullBundle.checked) {
+            selectedBundle = 'flexxter_full';
+            selectedBundleDiscount = bundles['flexxter_full'].discount;
+            bundleAddOns = bundles['flexxter_full'].addons;
+        }
+        
+        // Calculate bundle price and extra add-ons separately
         checkboxes.forEach(checkbox => {
             const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
             if (checkboxWrapper.classList.contains('w--redirected-checked')) {
                 let addValue = isYearlyChecked 
                     ? parseFloat(checkbox.getAttribute('calculator-add-yearly')) || 0 
                     : parseFloat(checkbox.getAttribute('calculator-add')) || 0;
-                result += addValue * x;
+                
+                // Add to the appropriate category
+                if (selectedBundle && bundleAddOns.includes(checkbox.id)) {
+                    // This add-on is part of the bundle and gets the discount
+                    result += addValue * x;
+                } else if (selectedBundle) {
+                    // This is an extra add-on outside the bundle - track separately
+                    extraAddOns += addValue * x;
+                } else {
+                    // No bundle selected, just add to the total
+                    result += addValue * x;
+                }
             }
         });
         
-        // Store the "ohne Bundle" price for reference
-        let fullPrice = result;
+        // Store the "ohne Bundle" price for reference (before any discounts)
+        let fullPrice = result + extraAddOns;
         
-        // Apply bundle discount if any bundle is selected
-        if (architektBundle.checked) {
-            result = result * (1 - bundles['architekt'].discount);
-        } else if (bauunternehmenBundle.checked) {
-            result = result * (1 - bundles['baunternehmen'].discount);
-        } else if (flexxterFullBundle.checked) {
-            result = result * (1 - bundles['flexxter_full'].discount);
+        // Apply bundle discount to only the bundle items
+        if (selectedBundle) {
+            result = result * (1 - selectedBundleDiscount);
+            // Add the extra add-ons without discount
+            result += extraAddOns;
         }
         
         // Update price displays
