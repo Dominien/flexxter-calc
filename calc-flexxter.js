@@ -40,13 +40,26 @@ document.addEventListener("DOMContentLoaded", function () {
             licences: 2,
             staff: 0,
             discount: 0.35, // 35% discount
+            // Include ALL add-ons for FlexXter Complete
             addons: [
-                'Tickets-und-M-ngel', 'Bautageb-cher', 'Mitarbeiter-Einsatzplanung', 
-                'Zeiterfassung', 'Zeiterfassung-mit-GPS', 'Zeiterfassung---DATEV-Export', 
-                'Digitale-Formulare', 'Betriebsmittelverwaltung', 'Auftragsmanagement', 
-                'K-nstliche-Intelligenz', 'Automatisierung-mit-Zapier', 'Individuelle-Projektfelder', 
-                'BIM-Viewer', 'Basispl-ne-f-r-Bauzeitenpl-ne', 'Projektkosten', 
-                'WhatsApp-Business', 'Lean-Construction', 'NFC-f-r-Tickets'
+                'Tickets-und-M-ngel', 
+                'Bautageb-cher', 
+                'Mitarbeiter-Einsatzplanung', 
+                'Zeiterfassung', 
+                'Zeiterfassung-mit-GPS', 
+                'Zeiterfassung---DATEV-Export', 
+                'Digitale-Formulare', 
+                'Betriebsmittelverwaltung', 
+                'Auftragsmanagement', 
+                'K-nstliche-Intelligenz', 
+                'Automatisierung-mit-Zapier', 
+                'Individuelle-Projektfelder', 
+                'BIM-Viewer', 
+                'Basispl-ne-f-r-Bauzeitenpl-ne', 
+                'Projektkosten', 
+                'WhatsApp-Business', 
+                'Lean-Construction', 
+                'NFC-f-r-Tickets'
             ]
         }
     };
