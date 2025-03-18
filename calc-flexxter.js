@@ -30,10 +30,10 @@ document.addEventListener("DOMContentLoaded", function () {
             staff: 0,
             discount: 0.30, // 30% discount
             addons: [
-                'Tickets-und-Mängel', 'Bautagebücher', 'Mitarbeiter-Einsatzplanung', 
+                'Tickets-und-M-ngel', 'Bautageb-cher', 'Mitarbeiter-Einsatzplanung', 
                 'Zeiterfassung', 'Zeiterfassung-mit-GPS', 'Digitale-Formulare', 
-                'Auftragsmanagement', 'Künstliche-Intelligenz', 'Individuelle-Projektfelder', 
-                'Basispläne-für-Bauzeitenpläne', 'Projektkosten', 'WhatsApp-Business'
+                'Auftragsmanagement', 'K-nstliche-Intelligenz', 'Individuelle-Projektfelder', 
+                'Basispl-ne-f-r-Bauzeitenpl-ne', 'Projektkosten', 'WhatsApp-Business'
             ]
         },
         'flexxter_full': {
@@ -41,12 +41,12 @@ document.addEventListener("DOMContentLoaded", function () {
             staff: 0,
             discount: 0.35, // 35% discount
             addons: [
-                'Tickets-und-Mängel', 'Bautagebücher', 'Mitarbeiter-Einsatzplanung', 
+                'Tickets-und-M-ngel', 'Bautageb-cher', 'Mitarbeiter-Einsatzplanung', 
                 'Zeiterfassung', 'Zeiterfassung-mit-GPS', 'Zeiterfassung---DATEV-Export', 
                 'Digitale-Formulare', 'Betriebsmittelverwaltung', 'Auftragsmanagement', 
-                'Künstliche-Intelligenz', 'Automatisierung-mit-Zapier', 'Individuelle-Projektfelder', 
-                'BIM-Viewer', 'Basispläne-für-Bauzeitenpläne', 'Projektkosten', 
-                'WhatsApp-Business', 'Lean-Construction', 'NFC-für-Tickets'
+                'K-nstliche-Intelligenz', 'Automatisierung-mit-Zapier', 'Individuelle-Projektfelder', 
+                'BIM-Viewer', 'Basispl-ne-f-r-Bauzeitenpl-ne', 'Projektkosten', 
+                'WhatsApp-Business', 'Lean-Construction', 'NFC-f-r-Tickets'
             ]
         }
     };
