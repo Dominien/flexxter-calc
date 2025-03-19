@@ -384,18 +384,20 @@ document.addEventListener("DOMContentLoaded", function () {
             bundleHeader.appendChild(monthlyMessage);
         }
         
-        // Show/hide message based on radio selection
-        monthlyRadio.addEventListener('change', function() {
-            if (monthlyRadio.checked) {
+        // Function to update bundle section based on payment period
+        function updateBundleSection(isMonthly) {
+            if (isMonthly) {
+                // Show warning message for monthly billing
                 monthlyMessage.style.display = 'block';
                 
-                // Also disable bundle checkboxes
+                // Disable bundle checkboxes
                 const bundleCheckboxes = document.querySelectorAll('.flex-bundles.here .form_checkbox');
                 bundleCheckboxes.forEach(checkbox => {
                     checkbox.style.opacity = '0.5';
                     checkbox.style.pointerEvents = 'none';
                 });
             } else {
+                // Remove warning for yearly billing
                 monthlyMessage.style.display = 'none';
                 
                 // Re-enable bundle checkboxes
@@ -405,14 +407,33 @@ document.addEventListener("DOMContentLoaded", function () {
                     checkbox.style.pointerEvents = 'auto';
                 });
             }
+        }
+        
+        // Add listeners to both radio buttons
+        monthlyRadio.addEventListener('change', function() {
+            if (monthlyRadio.checked) {
+                updateBundleSection(true);
+            }
         });
         
-        // Also check on yearly radio for initialization
+        // Also add a listener to the yearly radio
         const yearlyRadio = document.querySelector('input[value="Jährlich"]');
-        if (yearlyRadio && !yearlyRadio.checked) {
-            // If yearly is not checked at start, trigger the monthly change event
-            monthlyRadio.dispatchEvent(new Event('change'));
+        if (yearlyRadio) {
+            yearlyRadio.addEventListener('change', function() {
+                if (yearlyRadio.checked) {
+                    updateBundleSection(false);
+                }
+            });
         }
+        
+        // Initialize based on current selection
+        if (monthlyRadio.checked) {
+            updateBundleSection(true);
+        } else {
+            updateBundleSection(false);
+        }
+        
+        // We don't need this anymore as we've addressed initialization above
     }
     
     // Checkboxes
