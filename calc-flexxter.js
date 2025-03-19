@@ -267,20 +267,35 @@ document.addEventListener("DOMContentLoaded", function () {
             savingsPercentage = Math.round(selectedBundleDiscount * 100);
         }
         
-        // Update price displays with the price and savings in the same div
-        const priceDiv = resultElement.parentElement;
-        
-        if (selectedBundle) {
-            // Create and update HTML to include price and savings percentage in the same div
-            priceDiv.innerHTML = `
-                <span calculator-result="">${result.toFixed(2)}</span> €
-                <div style="color: #64bc2d; font-weight: bold; font-size: 14px; margin-top: 4px; text-align: center;">
-                    (${savingsPercentage}% gespart)
-                </div>
-            `;
-        } else {
-            // Reset to just the price without savings indicator
-            priceDiv.innerHTML = `<span calculator-result="">${result.toFixed(2)}</span> €`;
+        // Update price displays
+        if (resultElement) {
+            // First update the result element's text content
+            resultElement.textContent = result.toFixed(2);
+            
+            // Get parent div that contains the price
+            const priceDiv = resultElement.parentElement;
+            if (priceDiv) {
+                // Check if savings info already exists
+                let savingsDiv = priceDiv.querySelector('.savings-info');
+                
+                if (selectedBundle) {
+                    // If savings div doesn't exist, create it
+                    if (!savingsDiv) {
+                        savingsDiv = document.createElement('div');
+                        savingsDiv.className = 'savings-info';
+                        savingsDiv.style.cssText = 'color: #64bc2d; font-weight: bold; font-size: 14px; margin-top: 4px; text-align: center;';
+                        priceDiv.appendChild(savingsDiv);
+                    }
+                    
+                    // Update the savings text
+                    savingsDiv.textContent = `(${savingsPercentage}% gespart)`;
+                } else {
+                    // Remove savings div if exists and no bundle is selected
+                    if (savingsDiv) {
+                        savingsDiv.remove();
+                    }
+                }
+            }
         }
         
         // Update "ohne Bundle" price if visible
