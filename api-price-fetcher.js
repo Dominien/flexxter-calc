@@ -109,20 +109,26 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             // Function to extract JSON data from hidden field
             const extractJsonFromResponse = (html) => {
-                const match = html.match(/<input[^>]*id=['"]succ-data-container['"][^>]*value=['"]([^'"]+)['"]/);
+                // Log the raw HTML for debugging
+                console.log("Raw HTML response:", html);
+                
+                // Simple regex to match the input with id="succ-data-container"
+                const match = html.match(/id=["']succ-data-container["'][^>]*value=["']([^"']+)["']/);
                 if (match && match[1]) {
+                    const jsonString = match[1];
+                    console.log("Extracted JSON string:", jsonString);
+                    
                     try {
-                        // Create a temporary div to properly decode HTML entities
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = `<textarea>${match[1]}</textarea>`;
-                        const decodedJson = tempDiv.querySelector('textarea').value;
-                        return JSON.parse(decodedJson);
+                        // Direct parse without any decoding - the example shows clean JSON
+                        return JSON.parse(jsonString);
                     } catch (e) {
                         console.error("Failed to parse JSON from response", e);
                         return null;
                     }
+                } else {
+                    console.error("Could not find succ-data-container in HTML", html.substring(0, 300) + "...");
+                    return null;
                 }
-                return null;
             };
             
             // Define the add-ons we want to get prices for
