@@ -93,7 +93,17 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
         
-        // Trigger the click event once to initialize prices to yearly values by default
-        priceSwitcher.click();
+        // Initialize to yearly pricing without toggling the state
+        // First store the original monthly prices
+        priceTableRows.forEach(row => {
+            const monthlyCellContent = row.querySelector('.price_table-cell.is-small.is-center .text-weight-semibold');
+            const yearlyCellContent = row.querySelector('.price_table-cell.is-small:not(.is-center) .text-weight-bold');
+            
+            if (monthlyCellContent && yearlyCellContent) {
+                monthlyCellContent.setAttribute('data-original', monthlyCellContent.textContent);
+                // Apply yearly prices by default
+                monthlyCellContent.textContent = yearlyCellContent.textContent;
+            }
+        });
     }
 });
