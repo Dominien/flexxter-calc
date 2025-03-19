@@ -77,11 +77,40 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Function to refresh pricing data based on UI selections
+    async function refreshPricingData() {
+        // Clear the cache to force a refresh
+        priceCache.data = null;
+        priceCache.timestamp = 0;
+        
+        try {
+            // Show loading state
+            displayLoadingState(true);
+            
+            // Get fresh pricing data
+            const pricingData = await fetchPricingData(true); // Pass true to force refresh
+            
+            // Initialize calculator with fetched data
+            setupCalculator(pricingData);
+            
+            // Hide loading state
+            displayLoadingState(false);
+            
+            // Update result display
+            updateResult();
+            
+            console.log("Price calculator refreshed with new user selections");
+        } catch (error) {
+            handleApiError(error);
+        }
+    }
+
     // Function to fetch pricing data from the FlexXter API
-    async function fetchPricingData() {
+    async function fetchPricingData(forceRefresh = false) {
         // Check if we have cached data that's still valid
         const now = Date.now();
         if (
+            !forceRefresh &&
             priceCache.data !== null && 
             now - priceCache.timestamp < API_CONFIG.cacheTime &&
             !priceCache.isFetching
@@ -141,21 +170,41 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             };
             
-            // Define the add-ons we want to get prices for
-            const allAddOns = Object.keys(API_CONFIG.addonMapping).join(',');
+            // Get selected add-ons from checkboxes
+            function getSelectedAddOns() {
+                const selected = [];
+                
+                checkboxes.forEach(checkbox => {
+                    const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
+                    if (checkboxWrapper.classList.contains('w--redirected-checked')) {
+                        const domId = checkbox.id;
+                        const apiKey = API_CONFIG.reverseAddonMapping[domId];
+                        if (apiKey) {
+                            selected.push(apiKey);
+                        }
+                    }
+                });
+                
+                return selected.join(',');
+            }
+            
+            // Get current selected add-ons
+            const selectedAddOns = getSelectedAddOns();
+            // If there are no add-ons selected, use all add-ons for initial load
+            const addOnsParam = selectedAddOns || Object.keys(API_CONFIG.addonMapping).join(',');
             
             // Get number of licenses and payment term
             const licenses = parseInt(licencesInput?.textContent) || 1;
             const isYearly = yearlyRadio?.checked || false;
             const paymentTerm = isYearly ? 2 : 1; // 1 = monthly, 2 = yearly
             
-            console.log("Fetching pricing data from FlexXter API...");
+            console.log("Fetching pricing data from FlexXter API with addons:", addOnsParam);
             
-            // Build URL for monthly pricing with all addons
-            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=${licenses}&addons=${allAddOns}`;
+            // Build URL for monthly pricing with selected or all addons
+            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=${licenses}&addons=${addOnsParam}`;
             
-            // Build URL for yearly pricing with all addons
-            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=${licenses}&addons=${allAddOns}`;
+            // Build URL for yearly pricing with selected or all addons
+            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=${licenses}&addons=${addOnsParam}`;
             
             console.log("API URLs:");
             console.log("Monthly: " + monthlyUrl);
@@ -585,7 +634,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function setupEventListeners() {
         // Listen for changes in licenses
         if (licencesInput) {
-            const observer = new MutationObserver(updateResult);
+            const observer = new MutationObserver(() => {
+                // Refresh pricing data when licenses change
+                refreshPricingData();
+            });
             observer.observe(licencesInput, { childList: true, subtree: true, characterData: true });
         }
         
@@ -615,17 +667,24 @@ document.addEventListener("DOMContentLoaded", function () {
         // Listen for changes in add-ons
         checkboxes.forEach(checkbox => {
             const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
-            const checkboxObserver = new MutationObserver(updateResult);
+            const checkboxObserver = new MutationObserver(() => {
+                // Refresh pricing data when checkboxes change
+                refreshPricingData();
+            });
             checkboxObserver.observe(checkboxWrapper, { attributes: true, attributeFilter: ['class'] });
             
-            checkbox.addEventListener("change", updateResult);
+            checkbox.addEventListener("change", refreshPricingData);
         });
         
         // Listen for bundle selection
         const bundleCheckboxes = document.querySelectorAll('#architekt, #baunternehmen, #flexxter_full');
         bundleCheckboxes.forEach(bundleCheckbox => {
             const bundleName = bundleCheckbox.id;
-            bundleCheckbox.addEventListener('change', () => handleBundleSelection(bundleName));
+            bundleCheckbox.addEventListener('change', () => {
+                handleBundleSelection(bundleName);
+                // Also refresh pricing data for the bundle
+                refreshPricingData();
+            });
         });
     }
 
