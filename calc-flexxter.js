@@ -59,7 +59,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 'Projektkosten', 
                 'WhatsApp-Business', 
                 'Lean-Construction', 
-                'NFC-f-r-Tickets'
+                'NFC-f-r-Tickets',
+                'Poliere-Kolonenf-hrer'
             ]
         }
     };
