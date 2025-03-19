@@ -762,28 +762,49 @@ document.addEventListener("DOMContentLoaded", function () {
         radios.forEach(radio => {
             const visual = radio.closest('.form_radio').querySelector('.w-radio-input');
             const radioObserver = new MutationObserver(() => {
-                updateResult();
-                // Update displayed add-on prices
-                if (window.pricingModel && window.pricingModel.addOns) {
-                    updateAddOnPricesInDOM(window.pricingModel.addOns);
+                // Only update if not currently applying a bundle
+                if (!isApplyingBundle) {
+                    updateResult();
+                    // Update displayed add-on prices
+                    if (window.pricingModel && window.pricingModel.addOns) {
+                        updateAddOnPricesInDOM(window.pricingModel.addOns);
+                    }
                 }
             });
             radioObserver.observe(visual, { attributes: true, attributeFilter: ['class'] });
             
-            radio.addEventListener("change", updateResult);
-            radio.closest('.form_radio').addEventListener("click", updateResult);
+            radio.addEventListener("change", function() {
+                // Only update if not currently applying a bundle
+                if (!isApplyingBundle) {
+                    updateResult();
+                }
+            });
+            
+            radio.closest('.form_radio').addEventListener("click", function() {
+                // Only update if not currently applying a bundle
+                if (!isApplyingBundle) {
+                    updateResult();
+                }
+            });
         });
         
         // Listen for changes in add-ons
         checkboxes.forEach(checkbox => {
             const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
             const checkboxObserver = new MutationObserver(() => {
-                // Refresh pricing data when checkboxes change
-                refreshPricingData();
+                // Only refresh pricing data if not currently applying a bundle
+                if (!isApplyingBundle) {
+                    refreshPricingData();
+                }
             });
             checkboxObserver.observe(checkboxWrapper, { attributes: true, attributeFilter: ['class'] });
             
-            checkbox.addEventListener("change", refreshPricingData);
+            checkbox.addEventListener("change", function() {
+                // Only refresh pricing data if not currently applying a bundle
+                if (!isApplyingBundle) {
+                    refreshPricingData();
+                }
+            });
         });
         
         // Listen for bundle selection
@@ -791,8 +812,11 @@ document.addEventListener("DOMContentLoaded", function () {
         bundleCheckboxes.forEach(bundleCheckbox => {
             const bundleName = bundleCheckbox.id;
             bundleCheckbox.addEventListener('change', () => {
+                // First handle the bundle selection (which sets all checkboxes)
                 handleBundleSelection(bundleName);
-                // Also refresh pricing data for the bundle
+                
+                // Then make a single API call at the end
+                // This will use the updated selections from the bundle
                 refreshPricingData();
             });
         });
@@ -849,6 +873,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
+    // Flag to prevent multiple API calls during bundle application
+    let isApplyingBundle = false;
+    
     // Apply selected bundle
     function applyBundle(bundleId) {
         if (!window.pricingModel || !window.pricingModel.bundles) return;
@@ -856,32 +883,40 @@ document.addEventListener("DOMContentLoaded", function () {
         const bundle = window.pricingModel.bundles[bundleId];
         if (!bundle) return;
         
-        // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
-        const licenseValue = Math.max(2, bundle.licences);
-        updateSliderUI(licencesInput, licenseValue);
+        // Set flag to prevent multiple API calls
+        isApplyingBundle = true;
         
-        // Set staff to at least 1
-        if (staffInput) {
-            const staffValue = Math.max(1, bundle.staff);
-            updateSliderUI(staffInput, staffValue);
-        }
-        
-        // Force yearly subscription
-        selectYearly();
-        
-        // Reset all add-ons first
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-            updateCheckboxVisual(checkbox, false);
-        });
-        
-        // Set selected add-ons
-        checkboxes.forEach(checkbox => {
-            if (bundle.addons.includes(checkbox.id)) {
-                checkbox.checked = true;
-                updateCheckboxVisual(checkbox, true);
+        try {
+            // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
+            const licenseValue = Math.max(2, bundle.licences);
+            updateSliderUI(licencesInput, licenseValue);
+            
+            // Set staff to at least 1
+            if (staffInput) {
+                const staffValue = Math.max(1, bundle.staff);
+                updateSliderUI(staffInput, staffValue);
             }
-        });
+            
+            // Force yearly subscription
+            selectYearly();
+            
+            // Reset all add-ons first
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                updateCheckboxVisual(checkbox, false);
+            });
+            
+            // Set selected add-ons
+            checkboxes.forEach(checkbox => {
+                if (bundle.addons.includes(checkbox.id)) {
+                    checkbox.checked = true;
+                    updateCheckboxVisual(checkbox, true);
+                }
+            });
+        } finally {
+            // Reset flag after bundle application
+            isApplyingBundle = false;
+        }
     }
     
     // Function to reset all bundle selections
