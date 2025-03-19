@@ -284,10 +284,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 return selected.join(',');
             }
             
-            // Get current selected add-ons
+            // Get current selected add-ons - only use what's actually selected
             const selectedAddOns = getSelectedAddOns();
-            // If there are no add-ons selected, use all add-ons for initial load
-            const addOnsParam = selectedAddOns || Object.keys(API_CONFIG.addonMapping).join(',');
+            const addOnsParam = selectedAddOns;
             
             // Get number of licenses and payment term
             let licenses = parseInt(licencesInput?.textContent) || 1;
@@ -320,11 +319,13 @@ document.addEventListener("DOMContentLoaded", function () {
             
             console.log("Fetching pricing data from FlexXter API with addons:", addOnsParam);
             
-            // Build URL for monthly pricing with selected or all addons
-            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=${licenses}&addons=${addOnsParam}`;
+            // Build URL for monthly pricing with only selected addons
+            // If no addons are selected, don't include the addons parameter
+            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=${licenses}${addOnsParam ? `&addons=${addOnsParam}` : ''}`;
             
-            // Build URL for yearly pricing with selected or all addons
-            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=4&licenses=${licenses}&addons=${addOnsParam}`;
+            // Build URL for yearly pricing with only selected addons
+            // If no addons are selected, don't include the addons parameter
+            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=4&licenses=${licenses}${addOnsParam ? `&addons=${addOnsParam}` : ''}`;
             
             console.log("API URLs:");
             console.log("Monthly: " + monthlyUrl);
@@ -362,8 +363,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                     
                     // Get selected add-ons count
-                    const selectedAddOnsArray = addOnsParam.split(',');
-                    const addonCount = selectedAddOnsArray.length || Object.keys(API_CONFIG.addonMapping).length;
+                    const selectedAddOnsArray = addOnsParam ? addOnsParam.split(',') : [];
+                    const addonCount = selectedAddOnsArray.length;
                     
                     // Estimate addon price (this is an approximation)
                     const addonTotalPrice = totalPrice - (basePrice * licenses);
@@ -373,14 +374,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     const addonPrices = {};
                     
                     // Only create prices for the selected add-ons
-                    selectedAddOnsArray.forEach(addonKey => {
-                        if (addonKey && API_CONFIG.addonMapping[addonKey]) {
-                            const domId = API_CONFIG.addonMapping[addonKey];
-                            addonPrices[addonKey] = { 
-                                price: estimatedAddonPrice 
-                            };
-                        }
-                    });
+                    if (selectedAddOnsArray.length > 0) {
+                        selectedAddOnsArray.forEach(addonKey => {
+                            if (addonKey && API_CONFIG.addonMapping[addonKey]) {
+                                const domId = API_CONFIG.addonMapping[addonKey];
+                                addonPrices[addonKey] = { 
+                                    price: estimatedAddonPrice 
+                                };
+                            }
+                        });
+                    }
                     
                     return addonPrices;
                 };
