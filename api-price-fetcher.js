@@ -112,7 +112,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const match = html.match(/<input[^>]*id=['"]succ-data-container['"][^>]*value=['"]([^'"]+)['"]/);
                 if (match && match[1]) {
                     try {
-                        return JSON.parse(match[1].replace(/&quot;/g, '"'));
+                        // Create a temporary div to properly decode HTML entities
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = `<textarea>${match[1]}</textarea>`;
+                        const decodedJson = tempDiv.querySelector('textarea').value;
+                        return JSON.parse(decodedJson);
                     } catch (e) {
                         console.error("Failed to parse JSON from response", e);
                         return null;
