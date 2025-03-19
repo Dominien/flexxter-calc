@@ -923,15 +923,10 @@ document.addEventListener("DOMContentLoaded", function () {
             };
         })();
         
-        // Replace all bundle checkboxes with clones to clear any existing listeners
+        // Add event listeners to bundle checkboxes
         bundleCheckboxes.forEach(checkbox => {
-            const clone = checkbox.cloneNode(true);
-            if (checkbox.parentNode) {
-                checkbox.parentNode.replaceChild(clone, checkbox);
-            }
-            
-            // Add new controlled listener
-            clone.addEventListener('change', function() {
+            // Add event listener without replacing the checkbox
+            checkbox.addEventListener('change', function() {
                 // Prevent multiple simultaneous operations
                 if (bundleOperationInProgress) return;
                 bundleOperationInProgress = true;
@@ -939,11 +934,23 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Set global flag to disable other listeners
                 isApplyingBundle = true;
                 
-                // First handle the bundle selection (which sets all checkboxes)
-                handleBundleSelection(clone.id);
+                // Log for debugging
+                console.log(`Bundle checkbox changed: ${checkbox.id}, checked: ${checkbox.checked}`);
                 
-                // Use the debounced function to make a single API call
-                debouncedRefreshPricing();
+                // First handle the bundle selection (which sets all checkboxes)
+                handleBundleSelection(checkbox.id);
+                
+                // Force a refresh of pricing data after a short delay
+                setTimeout(() => {
+                    console.log("Forcing API refresh after bundle selection");
+                    refreshPricingData();
+                    
+                    // Reset flags after completion
+                    setTimeout(() => {
+                        isApplyingBundle = false;
+                        bundleOperationInProgress = false;
+                    }, 200);
+                }, 100);
             });
         });
     }
@@ -1039,14 +1046,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Then update the visual state of all checkboxes at once
         // This batches all DOM updates together to minimize reflows
-        setTimeout(() => {
-            checkboxes.forEach(checkbox => {
-                // Only update checkboxes whose state has changed
-                if (checkboxStates.get(checkbox.id) !== checkbox.checked) {
-                    updateCheckboxVisual(checkbox, checkbox.checked);
-                }
-            });
-        }, 10);
+        checkboxes.forEach(checkbox => {
+            // Only update checkboxes whose state has changed
+            if (checkboxStates.get(checkbox.id) !== checkbox.checked) {
+                updateCheckboxVisual(checkbox, checkbox.checked);
+            }
+        });
     }
     
     // Function to reset all bundle selections
