@@ -1,7 +1,15 @@
 document.addEventListener("DOMContentLoaded", function () {
     console.log("Initializing FlexXter calculator with API pricing...");
     
-    // Ensure sliders will be set to minimum values of 1
+    // Additional event listener to immediately fix slider values when DOM loads
+    setTimeout(() => {
+        if (licencesInput && parseInt(licencesInput.textContent) < 1) {
+            updateSliderUI(licencesInput, 1);
+        }
+        if (staffInput && parseInt(staffInput.textContent) < 1) {
+            updateSliderUI(staffInput, 1);
+        }
+    }, 100); // Small delay to ensure sliders are fully initialized
     // Configuration for the FlexXter API
     const API_CONFIG = {
         baseUrl: "https://www.flexxter.de/GetPrice/php",
@@ -46,6 +54,39 @@ document.addEventListener("DOMContentLoaded", function () {
     const checkboxes = document.querySelectorAll('input[calculator-add]');
     const bundleSection = document.querySelector('.calculator_result-wrapper.bundle');
     const ohneBundlePrice = document.getElementById('ohne-bundle');
+    
+    // Create and insert a direct script tag to force slider values to 1 immediately
+    const initScript = document.createElement('script');
+    initScript.innerHTML = `
+    // Execute immediately to set values before any other code runs
+    (function() {
+        // Find the slider elements
+        const licencesInput = document.querySelector('[calculator-licences]');
+        const staffInput = document.querySelector('[calculator-stuff]');
+        
+        // Set text contents to "1"
+        if (licencesInput) licencesInput.textContent = "1";
+        if (staffInput) staffInput.textContent = "1";
+        
+        // Force update of aria values too
+        const updateSliderNow = function(element) {
+            if (!element) return;
+            const handle = element.closest('[fs-rangeslider-element="wrapper"]')?.querySelector('[fs-rangeslider-element="handle"]');
+            if (handle) {
+                handle.setAttribute('aria-valuenow', 1);
+                const displayValue = handle.querySelector('[fs-rangeslider-element="display-value"]');
+                if (displayValue) displayValue.textContent = "1";
+            }
+        };
+        
+        // Apply to both sliders
+        updateSliderNow(licencesInput);
+        updateSliderNow(staffInput);
+        
+        console.log("Immediate slider fix applied");
+    })();
+    `;
+    document.head.appendChild(initScript);
     
     // Price calculator initialization
     async function initializeCalculator() {
@@ -102,6 +143,14 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateSliderUI(element, value) {
         if (!element) return;
         
+        console.log(`Updating slider for ${element.getAttribute('calculator-licences') ? 'licenses' : 'staff'} to ${value}`);
+        
+        // Make sure value is at least 1
+        value = Math.max(1, value);
+        
+        // Update the text content first
+        element.textContent = value.toString();
+        
         // Find the slider elements
         const rangeSlider = element.closest('[fs-rangeslider-element="wrapper"]');
         if (!rangeSlider) return;
@@ -117,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const max = parseInt(rangeSlider.getAttribute('fs-rangeslider-max')) || 100;
         
         // Calculate position
-        const trackWidth = track.offsetWidth;
+        const trackWidth = track.offsetWidth || 100; // Fallback width if track has no width yet
         const percentage = (value - min) / (max - min);
         const position = Math.max(0, Math.min(trackWidth, percentage * trackWidth));
         
@@ -129,7 +178,11 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Update aria values and element text
         handle.setAttribute('aria-valuenow', value);
-        element.textContent = value.toString();
+        
+        // Direct DOM manipulation for Webflow's special cases
+        if (handle.querySelector('[fs-rangeslider-element="display-value"]')) {
+            handle.querySelector('[fs-rangeslider-element="display-value"]').textContent = value.toString();
+        }
     }
 
     // Function to refresh pricing data based on UI selections
@@ -1045,4 +1098,11 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Initialize the calculator when the page loads
     initializeCalculator();
+    
+    // Extra enforcement for slider values
+    setTimeout(() => {
+        console.log("Extra slider position enforcement");
+        if (licencesInput) updateSliderUI(licencesInput, Math.max(1, parseInt(licencesInput.textContent) || 0));
+        if (staffInput) updateSliderUI(staffInput, Math.max(1, parseInt(staffInput.textContent) || 0));
+    }, 500);
 });
