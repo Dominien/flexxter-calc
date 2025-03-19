@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
+    console.log("Initializing FlexXter calculator with API pricing...");
+    
+    // Ensure sliders will be set to minimum values of 1
     // Configuration for the FlexXter API
     const API_CONFIG = {
         baseUrl: "https://www.flexxter.de/GetPrice/php",
@@ -78,15 +81,55 @@ document.addEventListener("DOMContentLoaded", function () {
     function setInitialValues() {
         // Set licenses to 1
         if (licencesInput) {
+            // Update the displayed text value
             licencesInput.textContent = "1";
-            setSliderValue(licencesInput, 1);
+            
+            // Also update the slider visually
+            updateSliderUI(licencesInput, 1);
         }
         
         // Set staff to 1
         if (staffInput) {
+            // Update the displayed text value
             staffInput.textContent = "1";
-            setSliderValue(staffInput, 1);
+            
+            // Also update the slider visually
+            updateSliderUI(staffInput, 1);
         }
+    }
+    
+    // Helper function to update slider UI with proper positioning
+    function updateSliderUI(element, value) {
+        if (!element) return;
+        
+        // Find the slider elements
+        const rangeSlider = element.closest('[fs-rangeslider-element="wrapper"]');
+        if (!rangeSlider) return;
+        
+        const handle = rangeSlider.querySelector('[fs-rangeslider-element="handle"]');
+        const track = rangeSlider.querySelector('[fs-rangeslider-element="track"]');
+        const fill = rangeSlider.querySelector('[fs-rangeslider-element="fill"]');
+        
+        if (!handle || !track || !fill) return;
+        
+        // Get slider min/max values
+        const min = parseInt(rangeSlider.getAttribute('fs-rangeslider-min')) || 0;
+        const max = parseInt(rangeSlider.getAttribute('fs-rangeslider-max')) || 100;
+        
+        // Calculate position
+        const trackWidth = track.offsetWidth;
+        const percentage = (value - min) / (max - min);
+        const position = Math.max(0, Math.min(trackWidth, percentage * trackWidth));
+        
+        // Update handle position
+        handle.style.left = position + 'px';
+        
+        // Update fill width
+        fill.style.width = position + 'px';
+        
+        // Update aria values and element text
+        handle.setAttribute('aria-valuenow', value);
+        element.textContent = value.toString();
     }
 
     // Function to refresh pricing data based on UI selections
@@ -186,9 +229,14 @@ document.addEventListener("DOMContentLoaded", function () {
             if (licenses < minLicenses) {
                 licenses = minLicenses;
                 if (licencesInput) {
-                    licencesInput.textContent = minLicenses.toString();
-                    setSliderValue(licencesInput, minLicenses);
+                    updateSliderUI(licencesInput, minLicenses);
                 }
+            }
+            
+            // Also ensure staff is at least 1
+            const staffCount = parseInt(staffInput?.textContent) || 0;
+            if (staffCount < 1 && staffInput) {
+                updateSliderUI(staffInput, 1);
             }
             
             const isYearly = yearlyRadio?.checked || false;
@@ -725,12 +773,12 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
         const licenseValue = Math.max(2, bundle.licences);
-        setSliderValue(licencesInput, licenseValue);
+        updateSliderUI(licencesInput, licenseValue);
         
         // Set staff to at least 1
         if (staffInput) {
             const staffValue = Math.max(1, bundle.staff);
-            setSliderValue(staffInput, staffValue);
+            updateSliderUI(staffInput, staffValue);
         }
         
         // Force yearly subscription
@@ -761,35 +809,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function setSliderValue(element, value) {
         if (!element) return;
         
-        // Update the display value
-        element.textContent = value;
-        
-        // Find the slider handle and update its position
-        const rangeSlider = element.closest('[fs-rangeslider-element="wrapper"]');
-        if (rangeSlider) {
-            const handle = rangeSlider.querySelector('[fs-rangeslider-element="handle"]');
-            const track = rangeSlider.querySelector('[fs-rangeslider-element="track"]');
-            const fill = rangeSlider.querySelector('[fs-rangeslider-element="fill"]');
-            
-            if (handle && track && fill) {
-                const min = parseInt(rangeSlider.getAttribute('fs-rangeslider-min')) || 0;
-                const max = parseInt(rangeSlider.getAttribute('fs-rangeslider-max')) || 100;
-                const trackWidth = track.offsetWidth;
-                
-                // Calculate the position percentage
-                const percentage = (value - min) / (max - min);
-                const position = percentage * trackWidth;
-                
-                // Update handle position
-                handle.style.left = position + 'px';
-                
-                // Update fill width
-                fill.style.width = position + 'px';
-                
-                // Update aria values
-                handle.setAttribute('aria-valuenow', value);
-            }
-        }
+        // Use the updateSliderUI helper to ensure correct visual state
+        updateSliderUI(element, value);
     }
     
     // Force yearly subscription selection
@@ -845,8 +866,13 @@ document.addEventListener("DOMContentLoaded", function () {
         
         if (licences < minLicenses) {
             licences = minLicenses;
-            licencesInput.textContent = minLicenses.toString();
-            setSliderValue(licencesInput, minLicenses);
+            updateSliderUI(licencesInput, minLicenses);
+        }
+        
+        // Also ensure staff is at least 1
+        const staffCount = parseInt(staffInput?.textContent) || 0;
+        if (staffCount < 1 && staffInput) {
+            updateSliderUI(staffInput, 1);
         }
         
         const isYearlyChecked = yearlyRadio.closest('.form_radio').querySelector('.w-radio-input')
