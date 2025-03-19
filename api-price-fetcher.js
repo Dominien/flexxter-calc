@@ -107,125 +107,127 @@ document.addEventListener("DOMContentLoaded", function () {
         priceCache.isFetching = true;
 
         try {
-            // Create a function to extract prices from HTML response
-            const extractPriceData = (html) => {
-                // Extract base price
-                const basePriceMatch = html.match(/<span[^>]*id="gesamtpreis"[^>]*>([0-9,.]+)<\/span>/);
-                const basePrice = basePriceMatch ? parseFloat(basePriceMatch[1].replace(',', '.')) : null;
-                
-                // Extract addon prices
-                const addons = {};
-                
-                Object.keys(API_CONFIG.addonMapping).forEach(addonKey => {
-                    // Look for addon price elements
-                    const regex = new RegExp(`<span[^>]*data-addon="${addonKey}"[^>]*>([0-9,.]+)<\/span>`);
-                    const match = html.match(regex);
-                    
-                    if (match) {
-                        const price = parseFloat(match[1].replace(',', '.'));
-                        addons[addonKey] = { price };
+            // Function to extract JSON data from hidden field
+            const extractJsonFromResponse = (html) => {
+                const match = html.match(/<input[^>]*id=['"]succ-data-container['"][^>]*value=['"]([^'"]+)['"]/);
+                if (match && match[1]) {
+                    try {
+                        return JSON.parse(match[1].replace(/&quot;/g, '"'));
+                    } catch (e) {
+                        console.error("Failed to parse JSON from response", e);
+                        return null;
                     }
-                });
-                
-                return {
-                    base_price: basePrice,
-                    addons
-                };
-            };
-            
-            // Create a function to extract bundle price
-            const extractBundlePrice = (html) => {
-                // Extract total price
-                const totalPriceMatch = html.match(/<span[^>]*id="gesamtpreis"[^>]*>([0-9,.]+)<\/span>/);
-                const totalPrice = totalPriceMatch ? parseFloat(totalPriceMatch[1].replace(',', '.')) : null;
-                
-                return { total_price: totalPrice };
+                }
+                return null;
             };
             
             // Define the add-ons we want to get prices for
             const allAddOns = Object.keys(API_CONFIG.addonMapping).join(',');
             
-            // Fetch monthly pricing (lz=1)
-            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=1&addons=${allAddOns}`;
+            // Get number of licenses and payment term
+            const licenses = parseInt(licencesInput?.textContent) || 1;
+            const isYearly = yearlyRadio?.checked || false;
+            const paymentTerm = isYearly ? 2 : 1; // 1 = monthly, 2 = yearly
             
-            // Fetch yearly pricing (lz=2)
-            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${allAddOns}`;
+            console.log("Fetching pricing data from FlexXter API...");
             
-            // Define architect bundle addons
-            const architectAddons = [
-                'incidents', 'construction-diary', 'forms', 'flexxter-ai', 
-                'custom-project-variables', 'project-baseplans', 'project-expanses', 'whatsapp'
-            ].join(',');
+            // Build URL for monthly pricing with all addons
+            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=${licenses}&addons=${allAddOns}`;
             
-            // Define construction bundle addons
-            const constructionAddons = [
-                'incidents', 'construction-diary', 'gangs', 'time-recording', 
-                'forms', 'invoices', 'flexxter-ai', 'custom-project-variables', 
-                'project-baseplans', 'project-expanses', 'whatsapp'
-            ].join(',');
-                
-            // Fetch bundle data using addons parameter
-            const architectBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${architectAddons}`;
-            const constructionBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${constructionAddons}`;
-            const completeUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${allAddOns}`;
+            // Build URL for yearly pricing with all addons
+            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=${licenses}&addons=${allAddOns}`;
             
             console.log("API URLs:");
             console.log("Monthly: " + monthlyUrl);
             console.log("Yearly: " + yearlyUrl);
             
-            // Fetch all data in parallel
-            const [
-                monthlyResponse,
-                yearlyResponse,
-                architectResponse,
-                constructionResponse,
-                completeResponse
-            ] = await Promise.all([
+            // Fetch monthly and yearly pricing data
+            const [monthlyResponse, yearlyResponse] = await Promise.all([
                 fetch(monthlyUrl),
-                fetch(yearlyUrl),
-                fetch(architectBundleUrl),
-                fetch(constructionBundleUrl),
-                fetch(completeUrl)
+                fetch(yearlyUrl)
             ]);
             
-            // Get HTML responses
+            // Parse responses
             const monthlyHtml = await monthlyResponse.text();
             const yearlyHtml = await yearlyResponse.text();
-            const architectHtml = await architectResponse.text();
-            const constructionHtml = await constructionResponse.text();
-            const completeHtml = await completeResponse.text();
             
-            // Extract price data from HTML
-            const monthlyData = extractPriceData(monthlyHtml);
-            const yearlyData = extractPriceData(yearlyHtml);
-            const architectData = extractBundlePrice(architectHtml);
-            const constructionData = extractBundlePrice(constructionHtml);
-            const completeData = extractBundlePrice(completeHtml);
+            // Extract JSON data from responses
+            const monthlyData = extractJsonFromResponse(monthlyHtml);
+            const yearlyData = extractJsonFromResponse(yearlyHtml);
             
-            console.log("Extracted monthly data:", JSON.stringify(monthlyData).substring(0, 100) + "...");
-            console.log("Extracted yearly data:", JSON.stringify(yearlyData).substring(0, 100) + "...");
+            console.log("API Response:", { 
+                monthly: monthlyData,
+                yearly: yearlyData
+            });
             
-            // If base prices are not found, use defaults
-            if (!monthlyData.base_price) monthlyData.base_price = 59.9;
-            if (!yearlyData.base_price) yearlyData.base_price = 49.9;
-            if (!architectData.total_price) architectData.total_price = 99.9;
-            if (!constructionData.total_price) constructionData.total_price = 129.9;
-            if (!completeData.total_price) completeData.total_price = 199.9;
-            
-            // Process and combine the data
-            const pricingData = processPricingData(
-                monthlyData, 
-                yearlyData, 
-                architectData,
-                constructionData,
-                completeData
-            );
-
-            // Store in cache
-            priceCache.data = pricingData;
-            priceCache.timestamp = now;
-            
-            return pricingData;
+            // Extract individual addon prices from the data
+            if (monthlyData || yearlyData) {
+                // Calculate individual addon prices
+                const calculateAddonPrices = (data, paymentType) => {
+                    const basePrice = paymentType === 'monthly' ? 59.90 : 49.90;
+                    const totalPrice = data[`${paymentType}_price`] || 0;
+                    
+                    // If we have no addons selected, return empty object
+                    if (totalPrice <= basePrice * licenses) {
+                        return {};
+                    }
+                    
+                    // Estimate addon price (this is an approximation)
+                    const addonTotalPrice = totalPrice - (basePrice * licenses);
+                    const addonCount = allAddOns.split(',').length;
+                    const estimatedAddonPrice = addonTotalPrice / addonCount / licenses;
+                    
+                    // Create addon price object
+                    const addonPrices = {};
+                    
+                    Object.keys(API_CONFIG.addonMapping).forEach(addonKey => {
+                        const domId = API_CONFIG.addonMapping[addonKey];
+                        addonPrices[addonKey] = { 
+                            price: estimatedAddonPrice 
+                        };
+                    });
+                    
+                    return addonPrices;
+                };
+                
+                // Create API response data structure
+                const monthlyApiData = {
+                    base_price: 59.90,
+                    addons: calculateAddonPrices(monthlyData || {}, 'monthly')
+                };
+                
+                const yearlyApiData = {
+                    base_price: 49.90,
+                    addons: calculateAddonPrices(yearlyData || {}, 'yearly')
+                };
+                
+                // Calculate architect & construction bundle prices
+                // These are based on the standard bundle discounts
+                const architectPrice = yearlyData ? yearlyData.yearly_price * 0.75 : null; // 25% discount
+                const constructionPrice = yearlyData ? yearlyData.yearly_price * 0.70 : null; // 30% discount
+                const completePrice = yearlyData ? yearlyData.yearly_price * 0.65 : null; // 35% discount
+                
+                const architectData = { total_price: architectPrice || 99.9 };
+                const constructionData = { total_price: constructionPrice || 129.9 };
+                const completeData = { total_price: completePrice || 199.9 };
+                
+                // Process and combine the data
+                const pricingData = processPricingData(
+                    monthlyApiData, 
+                    yearlyApiData, 
+                    architectData,
+                    constructionData,
+                    completeData
+                );
+                
+                // Store in cache
+                priceCache.data = pricingData;
+                priceCache.timestamp = now;
+                
+                return pricingData;
+            } else {
+                throw new Error("Failed to fetch pricing data from API");
+            }
         } catch (error) {
             console.error("Error fetching pricing data:", error);
             throw error;
@@ -259,28 +261,7 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
         
-        // Calculate bundle discount percentages by comparing bundle prices to individual prices
-        const calculateDiscount = (bundleData, includedAddons) => {
-            // Calculate total price of individual components
-            const basePrice = parseFloat(yearlyData.base_price) || 49.90;
-            
-            let individualTotal = basePrice;
-            for (const addon of includedAddons) {
-                const apiKey = API_CONFIG.reverseAddonMapping[addon];
-                if (apiKey && yearlyData.addons && yearlyData.addons[apiKey]) {
-                    individualTotal += parseFloat(yearlyData.addons[apiKey].price) || 0;
-                }
-            }
-            
-            // Get bundle price
-            const bundlePrice = parseFloat(bundleData.total_price) || individualTotal;
-            
-            // Calculate discount percentage
-            const discount = (individualTotal - bundlePrice) / individualTotal;
-            return Math.max(0, Math.min(discount, 0.99)); // Limit between 0 and 0.99
-        };
-        
-        // Define bundle contents (will be used to calculate discounts)
+        // Bundle configurations
         const bundles = {
             architekt: {
                 licences: 2,
@@ -308,11 +289,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
         
-        // Calculate bundle discounts
+        // Bundle discounts
         const bundleDiscounts = {
-            architekt: calculateDiscount(architectData, bundles.architekt.addons) || 0.25,
-            baunternehmen: calculateDiscount(constructionData, bundles.baunternehmen.addons) || 0.30,
-            flexxter_full: calculateDiscount(completeData, bundles.flexxter_full.addons) || 0.35
+            architekt: 0.25,
+            baunternehmen: 0.30,
+            flexxter_full: 0.35
         };
         
         return {
@@ -923,38 +904,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
-    // Check for offline mode
-    function isOfflineMode() {
-        return !navigator.onLine;
-    }
-    
-    // Retry mechanism with exponential backoff
-    async function fetchWithRetry(url, options = {}, maxRetries = 3) {
-        let retries = 0;
-        
-        while (retries < maxRetries) {
-            try {
-                const response = await fetch(url, options);
-                
-                // Check if response is ok
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                return response;
-            } catch (error) {
-                retries++;
-                if (retries >= maxRetries) throw error;
-                
-                // Exponential backoff
-                const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                await new Promise(resolve => setTimeout(resolve, delay));
-                
-                console.log(`Retry ${retries}/${maxRetries} for ${url}`);
-            }
-        }
-    }
-
     // Initialize the calculator when the page loads
     initializeCalculator();
 });
