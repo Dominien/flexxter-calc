@@ -336,14 +336,84 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Radio observation
     const radios = document.querySelectorAll('input[name="Laufzeit"]');
+    const monthlyRadio = document.querySelector('input[value="Monatlich"]');
+    
     radios.forEach(radio => {
         const visual = radio.closest('.form_radio').querySelector('.w-radio-input');
         const radioObserver = new MutationObserver(updateResult);
         radioObserver.observe(visual, { attributes: true, attributeFilter: ['class'] });
         
-        radio.addEventListener("change", updateResult);
+        radio.addEventListener("change", function() {
+            // When switching to monthly, deselect all bundles as they're only available yearly
+            if (radio.value === "Monatlich" && radio.checked) {
+                // Uncheck all bundle checkboxes
+                architektBundle.checked = false;
+                bauunternehmenBundle.checked = false;
+                flexxterFullBundle.checked = false;
+                
+                // Update their visual state
+                updateCheckboxVisual(architektBundle, false);
+                updateCheckboxVisual(bauunternehmenBundle, false);
+                updateCheckboxVisual(flexxterFullBundle, false);
+                
+                // Hide the bundle price display section
+                if (bundleSection) {
+                    bundleSection.style.display = 'none';
+                }
+            }
+            
+            // Update the result
+            updateResult();
+        });
         radio.closest('.form_radio').addEventListener("click", updateResult);
     });
+    
+    // Add a message element to show when monthly is selected
+    if (monthlyRadio) {
+        const bundleWrapper = document.querySelector('.calc-bundle');
+        const bundleHeader = bundleWrapper.querySelector('.calculator_grid-header.top');
+        
+        // Create a message element
+        const monthlyMessage = document.createElement('div');
+        monthlyMessage.className = 'bundle-monthly-message';
+        monthlyMessage.style.cssText = 'color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 8px; display: none;';
+        monthlyMessage.textContent = 'Hinweis: Bundles sind nur bei jährlicher Zahlung verfügbar!';
+        
+        // Add it after the header
+        if (bundleHeader) {
+            bundleHeader.appendChild(monthlyMessage);
+        }
+        
+        // Show/hide message based on radio selection
+        monthlyRadio.addEventListener('change', function() {
+            if (monthlyRadio.checked) {
+                monthlyMessage.style.display = 'block';
+                
+                // Also disable bundle checkboxes
+                const bundleCheckboxes = document.querySelectorAll('.flex-bundles.here .form_checkbox');
+                bundleCheckboxes.forEach(checkbox => {
+                    checkbox.style.opacity = '0.5';
+                    checkbox.style.pointerEvents = 'none';
+                });
+            } else {
+                monthlyMessage.style.display = 'none';
+                
+                // Re-enable bundle checkboxes
+                const bundleCheckboxes = document.querySelectorAll('.flex-bundles.here .form_checkbox');
+                bundleCheckboxes.forEach(checkbox => {
+                    checkbox.style.opacity = '1';
+                    checkbox.style.pointerEvents = 'auto';
+                });
+            }
+        });
+        
+        // Also check on yearly radio for initialization
+        const yearlyRadio = document.querySelector('input[value="Jährlich"]');
+        if (yearlyRadio && !yearlyRadio.checked) {
+            // If yearly is not checked at start, trigger the monthly change event
+            monthlyRadio.dispatchEvent(new Event('change'));
+        }
+    }
     
     // Checkboxes
     checkboxes.forEach(checkbox => {
