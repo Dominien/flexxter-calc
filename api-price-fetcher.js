@@ -112,17 +112,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Log the raw HTML for debugging
                 console.log("Raw HTML response:", html);
                 
-                // Simple regex to match the input with id="succ-data-container"
-                const match = html.match(/id=["']succ-data-container["'][^>]*value=["']([^"']+)["']/);
+                // Extract the complete JSON string with a more precise regex
+                const regex = /id=['"]succ-data-container['"].*?value=['"](\{.*?\})['"]/s;
+                const match = html.match(regex);
+                
                 if (match && match[1]) {
+                    // Get the full JSON string
                     const jsonString = match[1];
-                    console.log("Extracted JSON string:", jsonString);
+                    console.log("Extracted full JSON string:", jsonString);
                     
                     try {
-                        // Direct parse without any decoding - the example shows clean JSON
+                        // Direct parse the complete JSON string
                         return JSON.parse(jsonString);
                     } catch (e) {
                         console.error("Failed to parse JSON from response", e);
+                        // Fallback with hardcoded response for testing
+                        if (html.includes('"monthly_price":')) {
+                            const monthlyMatch = html.match(/"monthly_price":(\d+)/);
+                            if (monthlyMatch && monthlyMatch[1]) {
+                                return { monthly_price: parseInt(monthlyMatch[1]), yearly_price: null };
+                            }
+                        }
                         return null;
                     }
                 } else {
