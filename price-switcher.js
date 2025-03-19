@@ -9,7 +9,20 @@ document.addEventListener("DOMContentLoaded", function () {
             transition: all 0.3s ease-in-out;
         }
         
-        /* Card display */
+        /* Card animations */
+        .price_left,
+        .price_right {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .price_left.fade-out,
+        .price_right.fade-out {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        
         .price_left.hidden,
         .price_right.hidden {
             display: none;
