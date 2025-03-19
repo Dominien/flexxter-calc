@@ -56,6 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const ohneBundlePrice = document.getElementById('ohne-bundle');
     
     // Create and insert a direct script tag to force slider values to 1 immediately
+    // and set yearly option checked by default
     const initScript = document.createElement('script');
     initScript.innerHTML = `
     // Execute immediately to set values before any other code runs
@@ -83,7 +84,26 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSliderNow(licencesInput);
         updateSliderNow(staffInput);
         
-        console.log("Immediate slider fix applied");
+        // Set yearly option checked by default
+        const yearlyRadio = document.querySelector('input[is-yearly]');
+        const monthlyRadio = document.querySelector('input[value="Monatlich"]');
+        
+        if (yearlyRadio && monthlyRadio) {
+            // Set the yearly radio to checked
+            yearlyRadio.checked = true;
+            monthlyRadio.checked = false;
+            
+            // Update the visual state
+            const yearlyVisual = yearlyRadio.closest('.form_radio').querySelector('.w-radio-input');
+            const monthlyVisual = monthlyRadio.closest('.form_radio').querySelector('.w-radio-input');
+            
+            if (yearlyVisual && monthlyVisual) {
+                yearlyVisual.classList.add('w--redirected-checked');
+                monthlyVisual.classList.remove('w--redirected-checked');
+            }
+        }
+        
+        console.log("Immediate slider and yearly radio fix applied");
     })();
     `;
     document.head.appendChild(initScript);
@@ -120,6 +140,9 @@ document.addEventListener("DOMContentLoaded", function () {
     
     // Function to set initial values for licenses and staff
     function setInitialValues() {
+        // Set yearly option checked by default
+        selectYearly();
+        
         // Set licenses to 1
         if (licencesInput) {
             // Update the displayed text value
