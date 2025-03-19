@@ -2,27 +2,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add CSS for smooth animations
     const styleElement = document.createElement('style');
     styleElement.textContent = `
-        /* Smooth transitions for price tables and cards */
+        /* Smooth transitions for price tables and cells */
         .price_table-row,
         .price_table-cell,
-        .price_cards .price_left,
-        .price_cards .price_right,
         .price_swithcer-grab {
             transition: all 0.3s ease-in-out;
         }
         
-        /* Card transitions */
-        .price_left,
-        .price_right {
-            opacity: 1;
-            transition: opacity 0.5s ease, transform 0.5s ease;
-        }
-        
+        /* Card display */
         .price_left.hidden,
         .price_right.hidden {
-            opacity: 0;
-            transform: translateY(10px);
-            pointer-events: none;
+            display: none;
         }
     `;
     document.head.appendChild(styleElement);
