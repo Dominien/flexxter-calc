@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
             "whatsapp": "WhatsApp-Business",
             "lean-construction": "Lean-Construction",
             "nfc": "NFC-f-r-Tickets",
-            "foreman": "Poliere-Kolonenf-hrer"
+            "gang-time-recording": "Poliere-Kolonenf-hrer"
         },
         // Reverse mapping for UI to API conversion
         reverseAddonMapping: {}
