@@ -906,17 +906,44 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
         
-        // Listen for bundle selection
+        // Listen for bundle selection with a single handler to prevent cascading events
+        let bundleOperationInProgress = false;
         const bundleCheckboxes = document.querySelectorAll('#architekt, #baunternehmen, #flexxter_full');
-        bundleCheckboxes.forEach(bundleCheckbox => {
-            const bundleName = bundleCheckbox.id;
-            bundleCheckbox.addEventListener('change', () => {
-                // First handle the bundle selection (which sets all checkboxes)
-                handleBundleSelection(bundleName);
+        
+        // Create a debounced version of refreshPricingData
+        const debouncedRefreshPricing = (function() {
+            let timeout;
+            return function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    console.log("Executing debounced refresh pricing for bundle");
+                    refreshPricingData();
+                    bundleOperationInProgress = false;
+                }, 100);
+            };
+        })();
+        
+        // Replace all bundle checkboxes with clones to clear any existing listeners
+        bundleCheckboxes.forEach(checkbox => {
+            const clone = checkbox.cloneNode(true);
+            if (checkbox.parentNode) {
+                checkbox.parentNode.replaceChild(clone, checkbox);
+            }
+            
+            // Add new controlled listener
+            clone.addEventListener('change', function() {
+                // Prevent multiple simultaneous operations
+                if (bundleOperationInProgress) return;
+                bundleOperationInProgress = true;
                 
-                // Then make a single API call at the end
-                // This will use the updated selections from the bundle
-                refreshPricingData();
+                // Set global flag to disable other listeners
+                isApplyingBundle = true;
+                
+                // First handle the bundle selection (which sets all checkboxes)
+                handleBundleSelection(clone.id);
+                
+                // Use the debounced function to make a single API call
+                debouncedRefreshPricing();
             });
         });
     }
@@ -982,40 +1009,59 @@ document.addEventListener("DOMContentLoaded", function () {
         const bundle = window.pricingModel.bundles[bundleId];
         if (!bundle) return;
         
-        // Set flag to prevent multiple API calls
-        isApplyingBundle = true;
+        // We don't reset the isApplyingBundle flag here anymore - it's handled by the debounced function
         
-        try {
-            // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
-            const licenseValue = Math.max(2, bundle.licences);
-            updateSliderUI(licencesInput, licenseValue);
-            
-            // Set staff to at least 1
-            if (staffInput) {
-                const staffValue = Math.max(1, bundle.staff);
-                updateSliderUI(staffInput, staffValue);
+        // Disable all MutationObservers temporarily by removing checkboxes' wrappers
+        const checkboxWrappers = document.querySelectorAll('.form_checkbox .w-checkbox-input');
+        const originalClasses = {};
+        checkboxWrappers.forEach(wrapper => {
+            // Store original classes
+            originalClasses[wrapper.getAttribute('data-claude-id') || Math.random()] = wrapper.className;
+            // Remove all classes that might trigger observers
+            wrapper.className = 'w-checkbox-input w-checkbox-input--inputType-custom';
+        });
+        
+        // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
+        const licenseValue = Math.max(2, bundle.licences);
+        updateSliderUI(licencesInput, licenseValue);
+        
+        // Set staff to at least 1
+        if (staffInput) {
+            const staffValue = Math.max(1, bundle.staff);
+            updateSliderUI(staffInput, staffValue);
+        }
+        
+        // Force yearly subscription
+        selectYearly();
+        
+        // Reset all add-ons first (directly set checked property to avoid triggering events)
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        // Set selected add-ons (directly set checked property to avoid triggering events)
+        const addonsToCheck = [];
+        checkboxes.forEach(checkbox => {
+            if (bundle.addons.includes(checkbox.id)) {
+                checkbox.checked = true;
+                addonsToCheck.push(checkbox);
             }
-            
-            // Force yearly subscription
-            selectYearly();
-            
-            // Reset all add-ons first
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-                updateCheckboxVisual(checkbox, false);
-            });
-            
-            // Set selected add-ons
-            checkboxes.forEach(checkbox => {
-                if (bundle.addons.includes(checkbox.id)) {
-                    checkbox.checked = true;
-                    updateCheckboxVisual(checkbox, true);
+        });
+        
+        // Now update all visual states at once
+        checkboxes.forEach(checkbox => {
+            updateCheckboxVisual(checkbox, checkbox.checked);
+        });
+        
+        // Restore original classes to re-enable observers
+        setTimeout(() => {
+            checkboxWrappers.forEach(wrapper => {
+                const id = wrapper.getAttribute('data-claude-id') || '';
+                if (originalClasses[id]) {
+                    wrapper.className = originalClasses[id];
                 }
             });
-        } finally {
-            // Reset flag after bundle application
-            isApplyingBundle = false;
-        }
+        }, 50);
     }
     
     // Function to reset all bundle selections
