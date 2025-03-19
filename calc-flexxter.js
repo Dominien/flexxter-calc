@@ -1,4 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // This calculator implementation is disabled in favor of the API-based calculator (api-price-fetcher.js)
+    // Checking if the API calculator is present
+    if (document.querySelector('script[src*="api-price-fetcher.js"]')) {
+        console.log("API-based calculator detected. Disabling legacy calculator.");
+        return; // Exit early to prevent this script from running
+    }
+    
     // Get references to bundle checkboxes
     const architektBundle = document.getElementById('architekt');
     const bauunternehmenBundle = document.getElementById('baunternehmen');

@@ -759,11 +759,102 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Listen for changes in payment period (yearly/monthly)
         const radios = document.querySelectorAll('input[name="Laufzeit"]');
+        const monthlyRadio = document.querySelector('input[value="Monatlich"]');
+        
+        // Get the bundle wrapper element
+        const bundleWrapper = document.querySelector('.calc-bundle');
+        const bundleHeader = bundleWrapper?.querySelector('.calculator_grid-header.top');
+        
+        // Create a warning message element for monthly selection
+        const monthlyMessage = document.createElement('div');
+        monthlyMessage.className = 'bundle-monthly-message';
+        monthlyMessage.style.cssText = 'color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 8px; display: none;';
+        monthlyMessage.textContent = 'Hinweis: Bundles sind nur bei jährlicher Zahlung verfügbar!';
+        
+        // Add the message after the bundle header if it exists
+        if (bundleHeader) {
+            bundleHeader.appendChild(monthlyMessage);
+        }
+        
+        // Function to update bundle section based on payment period
+        function updateBundleSection(isMonthly) {
+            if (isMonthly) {
+                // Show warning message for monthly billing
+                monthlyMessage.style.display = 'block';
+                
+                // Disable bundle checkboxes
+                const bundleCheckboxes = document.querySelectorAll('.flex-bundles.here .form_checkbox');
+                bundleCheckboxes.forEach(checkbox => {
+                    checkbox.style.opacity = '0.5';
+                    checkbox.style.pointerEvents = 'none';
+                });
+                
+                // Check if any bundle was selected and deselect it
+                const architektBundle = document.getElementById('architekt');
+                const bauunternehmenBundle = document.getElementById('baunternehmen');
+                const flexxterFullBundle = document.getElementById('flexxter_full');
+                const wasAnyBundleSelected = architektBundle?.checked || bauunternehmenBundle?.checked || flexxterFullBundle?.checked;
+                
+                // Only proceed if a bundle was selected and we're not in the middle of applying a bundle
+                if (wasAnyBundleSelected && !isApplyingBundle) {
+                    // Set flag to prevent multiple API calls
+                    isApplyingBundle = true;
+                    
+                    try {
+                        // Uncheck all bundle checkboxes
+                        if (architektBundle) {
+                            architektBundle.checked = false;
+                            updateCheckboxVisual(architektBundle, false);
+                        }
+                        if (bauunternehmenBundle) {
+                            bauunternehmenBundle.checked = false;
+                            updateCheckboxVisual(bauunternehmenBundle, false);
+                        }
+                        if (flexxterFullBundle) {
+                            flexxterFullBundle.checked = false;
+                            updateCheckboxVisual(flexxterFullBundle, false);
+                        }
+                        
+                        // Hide the bundle price display section
+                        if (bundleSection) {
+                            bundleSection.style.display = 'none';
+                        }
+                        
+                        // Uncheck all add-ons
+                        checkboxes.forEach(checkbox => {
+                            checkbox.checked = false;
+                            updateCheckboxVisual(checkbox, false);
+                        });
+                    } finally {
+                        // Reset flag after changes
+                        isApplyingBundle = false;
+                        
+                        // Refresh pricing data with the new state
+                        refreshPricingData();
+                    }
+                }
+            } else {
+                // Remove warning for yearly billing
+                monthlyMessage.style.display = 'none';
+                
+                // Re-enable bundle checkboxes
+                const bundleCheckboxes = document.querySelectorAll('.flex-bundles.here .form_checkbox');
+                bundleCheckboxes.forEach(checkbox => {
+                    checkbox.style.opacity = '1';
+                    checkbox.style.pointerEvents = 'auto';
+                });
+            }
+        }
+        
         radios.forEach(radio => {
             const visual = radio.closest('.form_radio').querySelector('.w-radio-input');
             const radioObserver = new MutationObserver(() => {
                 // Only update if not currently applying a bundle
                 if (!isApplyingBundle) {
+                    // Check if monthly is selected
+                    const isMonthly = radio.value === "Monatlich" && radio.checked;
+                    updateBundleSection(isMonthly);
+                    
                     updateResult();
                     // Update displayed add-on prices
                     if (window.pricingModel && window.pricingModel.addOns) {
@@ -776,6 +867,10 @@ document.addEventListener("DOMContentLoaded", function () {
             radio.addEventListener("change", function() {
                 // Only update if not currently applying a bundle
                 if (!isApplyingBundle) {
+                    // Check if monthly is selected
+                    const isMonthly = radio.value === "Monatlich" && radio.checked;
+                    updateBundleSection(isMonthly);
+                    
                     updateResult();
                 }
             });
@@ -783,6 +878,10 @@ document.addEventListener("DOMContentLoaded", function () {
             radio.closest('.form_radio').addEventListener("click", function() {
                 // Only update if not currently applying a bundle
                 if (!isApplyingBundle) {
+                    // Check if monthly is selected
+                    const isMonthly = radio.value === "Monatlich" && radio.checked;
+                    updateBundleSection(isMonthly);
+                    
                     updateResult();
                 }
             });
@@ -1200,5 +1299,12 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log("Extra slider position enforcement");
         if (licencesInput) updateSliderUI(licencesInput, Math.max(1, parseInt(licencesInput.textContent) || 0));
         if (staffInput) updateSliderUI(staffInput, Math.max(1, parseInt(staffInput.textContent) || 0));
+        
+        // Initialize bundle section based on current payment selection
+        const monthlyRadio = document.querySelector('input[value="Monatlich"]');
+        if (monthlyRadio && typeof updateBundleSection === 'function') {
+            const isMonthly = monthlyRadio.checked;
+            updateBundleSection(isMonthly);
+        }
     }, 500);
 });
