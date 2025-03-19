@@ -373,11 +373,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     addons: calculateAddonPrices(yearlyData || {}, 'yearly')
                 };
                 
-                // Calculate architect & construction bundle prices
-                // These are based on the standard bundle discounts
-                const architectPrice = yearlyData ? yearlyData.yearly_price * 0.75 : null; // 25% discount
-                const constructionPrice = yearlyData ? yearlyData.yearly_price * 0.70 : null; // 30% discount
-                const completePrice = yearlyData ? yearlyData.yearly_price * 0.65 : null; // 35% discount
+                // For bundles, we'll use the monthly_price from the yearly data directly
+                // We'll apply the bundle discounts on the UI side
+                const architectPrice = yearlyData ? yearlyData.monthly_price : null; // Will apply 25% discount in UI
+                const constructionPrice = yearlyData ? yearlyData.monthly_price : null; // Will apply 30% discount in UI
+                const completePrice = yearlyData ? yearlyData.monthly_price : null; // Will apply 35% discount in UI
                 
                 const architectData = { total_price: architectPrice || 99.9 };
                 const constructionData = { total_price: constructionPrice || 129.9 };
@@ -467,11 +467,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
         
-        // Bundle discounts
+        // Bundle discounts (these are the displayed percentages in the bundle labels)
         const bundleDiscounts = {
-            architekt: 0.25,
-            baunternehmen: 0.30,
-            flexxter_full: 0.35
+            architekt: 0.25, // 25%
+            baunternehmen: 0.30, // 30%
+            flexxter_full: 0.35 // 35%
         };
         
         return {
@@ -974,11 +974,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log(`Using direct API price: ${result} € (${isYearlyChecked ? 'yearly plan, monthly payment' : 'monthly plan'})`);
                 
                 // If a bundle is selected, calculate what the price would be without the discount
+                // For the display, we'll show the API price directly and calculate what the regular price would be
                 if (selectedBundle) {
-                    fullPrice = result / (1 - selectedBundleDiscount);
-                    savingsPercentage = Math.round(selectedBundleDiscount * 100);
+                    // Get discount percentage from bundle selection
+                    if (selectedBundle === 'architekt') {
+                        savingsPercentage = 25;
+                    } else if (selectedBundle === 'baunternehmen') {
+                        savingsPercentage = 30;
+                    } else if (selectedBundle === 'flexxter_full') {
+                        savingsPercentage = 35;
+                    }
+                    
+                    // Calculate the "ohne Bundle" price by adding the discount back
+                    fullPrice = result / (1 - (savingsPercentage / 100));
                 } else {
                     fullPrice = result;
+                    savingsPercentage = 0;
                 }
             } else {
                 // Fall back to the calculation method if direct price is not available
@@ -1032,14 +1043,24 @@ document.addEventListener("DOMContentLoaded", function () {
             // Store the "ohne Bundle" price for reference (before any discounts)
             fullPrice = result + extraAddOns;
             
-            // Apply bundle discount to only the bundle items
+            // Apply bundle discount based on the label percentages
             if (selectedBundle) {
-                const discountedPrice = result * (1 - selectedBundleDiscount);
+                // Get discount percentage from bundle selection
+                if (selectedBundle === 'architekt') {
+                    savingsPercentage = 25;
+                } else if (selectedBundle === 'baunternehmen') {
+                    savingsPercentage = 30;
+                } else if (selectedBundle === 'flexxter_full') {
+                    savingsPercentage = 35;
+                }
+                
+                // Apply the discount
+                const discountedPrice = result * (1 - (savingsPercentage / 100));
                 // Add the extra add-ons without discount
                 result = discountedPrice + extraAddOns;
                 
-                // Calculate savings percentage (for the bundled items only)
-                savingsPercentage = Math.round(selectedBundleDiscount * 100);
+                // fullPrice already calculated above (for ohne Bundle display)
+                fullPrice = result / (1 - (savingsPercentage / 100));
             }
         }
         
