@@ -394,8 +394,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 // Store raw API response for direct price use
                 pricingData.apiResponse = {
-                    monthly_price: monthlyData?.monthly_price || null,
-                    yearly_price: yearlyData?.yearly_price || null
+                    monthly: {
+                        monthly_price: monthlyData?.monthly_price || null,
+                        yearly_price: monthlyData?.yearly_price || null
+                    },
+                    yearly: {
+                        monthly_price: yearlyData?.monthly_price || null,
+                        yearly_price: yearlyData?.yearly_price || null
+                    }
                 };
                 
                 return pricingData;
@@ -957,14 +963,15 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Check if we have direct API price data
         if (window.pricingModel.apiResponse) {
-            const directData = window.pricingModel.apiResponse;
-            const priceKey = isYearlyChecked ? 'yearly_price' : 'monthly_price';
-            const directPrice = directData[priceKey];
+            const apiData = window.pricingModel.apiResponse;
+            // Always use the monthly price from the appropriate plan
+            const directData = isYearlyChecked ? apiData.yearly : apiData.monthly;
+            const directPrice = directData.monthly_price;
             
             if (directPrice !== null) {
                 // Convert API value (cents) to euros for display
                 result = directPrice / 100;
-                console.log(`Using direct API price: ${result} €`);
+                console.log(`Using direct API price: ${result} € (${isYearlyChecked ? 'yearly plan, monthly payment' : 'monthly plan'})`);
                 
                 // If a bundle is selected, calculate what the price would be without the discount
                 if (selectedBundle) {
