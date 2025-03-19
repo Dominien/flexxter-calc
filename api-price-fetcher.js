@@ -293,7 +293,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             
             const isYearly = yearlyRadio?.checked || false;
-            const paymentTerm = isYearly ? 2 : 1; // 1 = monthly, 2 = yearly
+            const paymentTerm = isYearly ? 4 : 1; // 1 = monthly, 4 = yearly
             
             console.log("Fetching pricing data from FlexXter API with addons:", addOnsParam);
             
@@ -301,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=${licenses}&addons=${addOnsParam}`;
             
             // Build URL for yearly pricing with selected or all addons
-            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=${licenses}&addons=${addOnsParam}`;
+            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=4&licenses=${licenses}&addons=${addOnsParam}`;
             
             console.log("API URLs:");
             console.log("Monthly: " + monthlyUrl);
