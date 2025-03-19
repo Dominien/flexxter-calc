@@ -1,6 +1,6 @@
 # FlexXter Calculator
 
-A JavaScript-based pricing calculator for FlexXter services integrated with Webflow.
+A JavaScript-based pricing calculator for Flexxter services integrated with Webflow.
 
 ## Overview
 
