@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // Configuration for the FlexXter API
     const API_CONFIG = {
         baseUrl: "https://www.flexxter.de/GetPrice/php",
-        cacheTime: 1800000, // 30 minutes in milliseconds
         // Mapping between API add-on keys and DOM element IDs
         addonMapping: {
             "incidents": "Tickets-und-M-ngel",
@@ -34,12 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
         API_CONFIG.reverseAddonMapping[domId] = apiKey;
     }
 
-    // Cache object to store fetched data
-    const priceCache = {
-        data: null,
-        timestamp: 0,
-        isFetching: false
-    };
+    // No cache is used - all requests go directly to the API
 
     // DOM elements references 
     const licencesInput = document.querySelector('[calculator-licences]');
@@ -79,16 +73,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to refresh pricing data based on UI selections
     async function refreshPricingData() {
-        // Clear the cache to force a refresh
-        priceCache.data = null;
-        priceCache.timestamp = 0;
-        
         try {
             // Show loading state
             displayLoadingState(true);
             
-            // Get fresh pricing data
-            const pricingData = await fetchPricingData(true); // Pass true to force refresh
+            // Get fresh pricing data directly from API (no caching)
+            const pricingData = await fetchPricingData(true); 
             
             // Initialize calculator with fetched data
             setupCalculator(pricingData);
@@ -107,33 +97,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to fetch pricing data from the FlexXter API
     async function fetchPricingData(forceRefresh = false) {
-        // Check if we have cached data that's still valid
-        const now = Date.now();
-        if (
-            !forceRefresh &&
-            priceCache.data !== null && 
-            now - priceCache.timestamp < API_CONFIG.cacheTime &&
-            !priceCache.isFetching
-        ) {
-            return priceCache.data;
-        }
-
-        // If already fetching, wait for it to complete
-        if (priceCache.isFetching) {
-            return new Promise((resolve, reject) => {
-                const checkCache = setInterval(() => {
-                    if (!priceCache.isFetching && priceCache.data !== null) {
-                        clearInterval(checkCache);
-                        resolve(priceCache.data);
-                    } else if (!priceCache.isFetching && priceCache.data === null) {
-                        clearInterval(checkCache);
-                        reject(new Error("Failed to fetch pricing data"));
-                    }
-                }, 100);
-            });
-        }
-
-        priceCache.isFetching = true;
+        // No caching - always fetch fresh data
 
         try {
             // Function to extract JSON data from hidden field
@@ -296,10 +260,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     yearly_price: yearlyData?.yearly_price || null
                 };
                 
-                // Store in cache
-                priceCache.data = pricingData;
-                priceCache.timestamp = now;
-                
                 return pricingData;
             } else {
                 throw new Error("Failed to fetch pricing data from API");
@@ -307,8 +267,6 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (error) {
             console.error("Error fetching pricing data:", error);
             throw error;
-        } finally {
-            priceCache.isFetching = false;
         }
     }
     
@@ -576,22 +534,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
         
-        // Try to get cached pricing from localStorage
-        try {
-            const cachedPricing = localStorage.getItem('flexxter_pricing');
-            if (cachedPricing) {
-                const parsedCache = JSON.parse(cachedPricing);
-                // Check if the cached data has a valid timestamp and structure
-                if (parsedCache && parsedCache.timestamp && 
-                    Date.now() - parsedCache.timestamp < 86400000) { // 24 hours
-                    console.log("Using cached pricing data from localStorage");
-                    setupCalculator(parsedCache.data);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.error("Error accessing localStorage:", e);
-        }
+        // No localStorage caching used
         
         // Fall back to default pricing constants
         console.log("Using default pricing constants");
@@ -602,16 +545,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function setupCalculator(pricingData) {
         // Update pricingModel with data from API
         window.pricingModel = pricingData;
-        
-        // Save to localStorage as backup
-        try {
-            localStorage.setItem('flexxter_pricing', JSON.stringify({
-                timestamp: Date.now(),
-                data: pricingData
-            }));
-        } catch (e) {
-            // Could not save to localStorage
-        }
         
         // Apply add-on prices to the relevant DOM elements
         updateAddOnPricesInDOM(pricingData.addOns);
