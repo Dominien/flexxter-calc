@@ -8,7 +8,7 @@ This calculator allows users to:
 
 - Configure the number of licenses and staff members
 - Select subscription length (monthly or yearly)
-- Choose from predefined bundles with discounts (Architekt, Bauunternehmen, FlexXter Full)
+- Choose from predefined bundles with discounts (Architekt, Bauunternehmen, Flexxter Full)
 - Add various add-on services with individual pricing
 - See real-time price calculations with and without bundle discounts
 

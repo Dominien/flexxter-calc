@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
             staff: 0,
             discount: 0.25, // 25% discount
             addons: [
-                'Tickets-und-M-ngel', 'Bautageb-cher', 'Mitarbeiter-Einsatzplanung',
+                'Tickets-und-M-ngel', 'Bautageb-cher',
                 'Digitale-Formulare', 'K-nstliche-Intelligenz', 'Individuelle-Projektfelder', 
                 'Basispl-ne-f-r-Bauzeitenpl-ne', 'Projektkosten', 'WhatsApp-Business'
             ]
@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
             discount: 0.30, // 30% discount
             addons: [
                 'Tickets-und-M-ngel', 'Bautageb-cher', 'Mitarbeiter-Einsatzplanung', 
-                'Zeiterfassung', 'Zeiterfassung-mit-GPS', 'Digitale-Formulare', 
+                'Zeiterfassung', 'Digitale-Formulare', 
                 'Auftragsmanagement', 'K-nstliche-Intelligenz', 'Individuelle-Projektfelder', 
                 'Basispl-ne-f-r-Bauzeitenpl-ne', 'Projektkosten', 'WhatsApp-Business'
             ]
