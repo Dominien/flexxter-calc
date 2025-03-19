@@ -138,9 +138,6 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             // Function to extract JSON data from hidden field
             const extractJsonFromResponse = (html) => {
-                // Log the raw HTML for debugging
-                console.log("Raw HTML response:", html);
-                
                 // Extract the complete JSON string with a more precise regex
                 const regex = /id=['"]succ-data-container['"].*?value=['"](\{.*?\})['"]/s;
                 const match = html.match(regex);
@@ -148,13 +145,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (match && match[1]) {
                     // Get the full JSON string
                     const jsonString = match[1];
-                    console.log("Extracted full JSON string:", jsonString);
                     
                     try {
                         // Direct parse the complete JSON string
                         return JSON.parse(jsonString);
                     } catch (e) {
-                        console.error("Failed to parse JSON from response", e);
                         // Fallback with hardcoded response for testing
                         if (html.includes('"monthly_price":')) {
                             const monthlyMatch = html.match(/"monthly_price":(\d+)/);
@@ -165,7 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         return null;
                     }
                 } else {
-                    console.error("Could not find succ-data-container in HTML", html.substring(0, 300) + "...");
+                    // Could not find container
                     return null;
                 }
             };
@@ -615,7 +610,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 data: pricingData
             }));
         } catch (e) {
-            console.warn("Could not save pricing data to localStorage:", e);
+            // Could not save to localStorage
         }
         
         // Apply add-on prices to the relevant DOM elements
