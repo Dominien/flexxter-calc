@@ -267,38 +267,20 @@ document.addEventListener("DOMContentLoaded", function () {
             savingsPercentage = Math.round(selectedBundleDiscount * 100);
         }
         
-        // Update price displays
-        resultElement.textContent = result.toFixed(2);
+        // Update price displays with the price and savings in the same div
+        const priceDiv = resultElement.parentElement;
         
-        // Get the main price result wrapper
-        const mainResultWrapper = resultElement.closest('.calculator_result-wrapper');
-        
-        // Update the main price display to show savings percentage
         if (selectedBundle) {
-            // Check if there's already a savings indicator
-            let savingsElement = mainResultWrapper.querySelector('.savings-indicator');
-            
-            if (!savingsElement) {
-                // Create a new element to show the savings
-                savingsElement = document.createElement('div');
-                savingsElement.className = 'savings-indicator';
-                savingsElement.style.cssText = 'color: #64bc2d; font-weight: bold; font-size: 14px; margin-top: 4px; text-align: right;';
-                
-                // Insert it after the price
-                const priceElement = resultElement.parentElement;
-                if (priceElement && priceElement.parentElement) {
-                    priceElement.parentElement.appendChild(savingsElement);
-                }
-            }
-            
-            // Update the savings text
-            savingsElement.textContent = `(${savingsPercentage}% gespart)`;
+            // Create and update HTML to include price and savings percentage in the same div
+            priceDiv.innerHTML = `
+                <span calculator-result="">${result.toFixed(2)}</span> €
+                <div style="color: #64bc2d; font-weight: bold; font-size: 14px; margin-top: 4px; text-align: center;">
+                    (${savingsPercentage}% gespart)
+                </div>
+            `;
         } else {
-            // Remove savings indicator if no bundle is selected
-            const savingsElement = mainResultWrapper.querySelector('.savings-indicator');
-            if (savingsElement) {
-                savingsElement.remove();
-            }
+            // Reset to just the price without savings indicator
+            priceDiv.innerHTML = `<span calculator-result="">${result.toFixed(2)}</span> €`;
         }
         
         // Update "ohne Bundle" price if visible
