@@ -1011,15 +1011,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // We don't reset the isApplyingBundle flag here anymore - it's handled by the debounced function
         
-        // Disable all MutationObservers temporarily by removing checkboxes' wrappers
-        const checkboxWrappers = document.querySelectorAll('.form_checkbox .w-checkbox-input');
-        const originalClasses = {};
-        checkboxWrappers.forEach(wrapper => {
-            // Store original classes
-            originalClasses[wrapper.getAttribute('data-claude-id') || Math.random()] = wrapper.className;
-            // Remove all classes that might trigger observers
-            wrapper.className = 'w-checkbox-input w-checkbox-input--inputType-custom';
-        });
+        // Instead of disabling MutationObservers by changing classes, we'll use a different approach
         
         // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
         const licenseValue = Math.max(2, bundle.licences);
@@ -1033,35 +1025,28 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Force yearly subscription
         selectYearly();
-        
-        // Reset all add-ons first (directly set checked property to avoid triggering events)
+
+        // Get current state of checkboxes before changing anything
+        const checkboxStates = new Map();
         checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
+            checkboxStates.set(checkbox.id, checkbox.checked);
         });
         
-        // Set selected add-ons (directly set checked property to avoid triggering events)
-        const addonsToCheck = [];
+        // First manually update the checked property without touching the DOM
         checkboxes.forEach(checkbox => {
-            if (bundle.addons.includes(checkbox.id)) {
-                checkbox.checked = true;
-                addonsToCheck.push(checkbox);
-            }
+            checkbox.checked = bundle.addons.includes(checkbox.id);
         });
-        
-        // Now update all visual states at once
-        checkboxes.forEach(checkbox => {
-            updateCheckboxVisual(checkbox, checkbox.checked);
-        });
-        
-        // Restore original classes to re-enable observers
+
+        // Then update the visual state of all checkboxes at once
+        // This batches all DOM updates together to minimize reflows
         setTimeout(() => {
-            checkboxWrappers.forEach(wrapper => {
-                const id = wrapper.getAttribute('data-claude-id') || '';
-                if (originalClasses[id]) {
-                    wrapper.className = originalClasses[id];
+            checkboxes.forEach(checkbox => {
+                // Only update checkboxes whose state has changed
+                if (checkboxStates.get(checkbox.id) !== checkbox.checked) {
+                    updateCheckboxVisual(checkbox, checkbox.checked);
                 }
             });
-        }, 50);
+        }, 10);
     }
     
     // Function to reset all bundle selections
