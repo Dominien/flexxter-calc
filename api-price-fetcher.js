@@ -295,6 +295,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     completeData
                 );
                 
+                // Store raw API response for direct price use
+                pricingData.apiResponse = {
+                    monthly_price: monthlyData?.monthly_price || null,
+                    yearly_price: yearlyData?.yearly_price || null
+                };
+                
                 // Store in cache
                 priceCache.data = pricingData;
                 priceCache.timestamp = now;
@@ -861,16 +867,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const isYearlyChecked = yearlyRadio.closest('.form_radio').querySelector('.w-radio-input')
             .classList.contains('w--redirected-checked');
         
-        // Get base price from pricing model
-        let basePrice = isYearlyChecked 
-            ? window.pricingModel.basePrices.yearly
-            : window.pricingModel.basePrices.monthly;
-            
-        let result = licences * basePrice;
-        let bundleAddOns = [];
-        let extraAddOns = 0;
-        
-        // Determine which bundle is selected and get its add-ons
+        // Determine which bundle is selected
         let selectedBundle = null;
         let selectedBundleDiscount = 0;
         
@@ -881,53 +878,98 @@ document.addEventListener("DOMContentLoaded", function () {
         if (architektBundle.checked) {
             selectedBundle = 'architekt';
             selectedBundleDiscount = window.pricingModel.bundleDiscounts.architekt;
-            bundleAddOns = window.pricingModel.bundles.architekt.addons;
         } else if (bauunternehmenBundle.checked) {
             selectedBundle = 'baunternehmen';
             selectedBundleDiscount = window.pricingModel.bundleDiscounts.baunternehmen;
-            bundleAddOns = window.pricingModel.bundles.baunternehmen.addons;
         } else if (flexxterFullBundle.checked) {
             selectedBundle = 'flexxter_full';
             selectedBundleDiscount = window.pricingModel.bundleDiscounts.flexxter_full;
-            bundleAddOns = window.pricingModel.bundles.flexxter_full.addons;
         }
         
-        // Calculate bundle price and extra add-ons separately
-        checkboxes.forEach(checkbox => {
-            const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
-            if (checkboxWrapper.classList.contains('w--redirected-checked')) {
-                let addValue = isYearlyChecked 
-                    ? parseFloat(checkbox.getAttribute('calculator-add-yearly')) || 0 
-                    : parseFloat(checkbox.getAttribute('calculator-add')) || 0;
-                
-                // Add to the appropriate category
-                if (selectedBundle && bundleAddOns.includes(checkbox.id)) {
-                    // This add-on is part of the bundle and gets the discount
-                    result += addValue * licences;
-                } else if (selectedBundle) {
-                    // This is an extra add-on outside the bundle - track separately
-                    extraAddOns += addValue * licences;
-                } else {
-                    // No bundle selected, just add to the total
-                    result += addValue * licences;
-                }
-            }
-        });
-        
-        // Store the "ohne Bundle" price for reference (before any discounts)
-        let fullPrice = result + extraAddOns;
-        
-        // Apply bundle discount to only the bundle items
-        let discountedPrice = 0;
+        // Use the API direct price if available
+        let result = 0;
+        let fullPrice = 0;
         let savingsPercentage = 0;
         
-        if (selectedBundle) {
-            discountedPrice = result * (1 - selectedBundleDiscount);
-            // Add the extra add-ons without discount
-            result = discountedPrice + extraAddOns;
+        // Check if we have direct API price data
+        if (window.pricingModel.apiResponse) {
+            const directData = window.pricingModel.apiResponse;
+            const priceKey = isYearlyChecked ? 'yearly_price' : 'monthly_price';
+            const directPrice = directData[priceKey];
             
-            // Calculate savings percentage (for the bundled items only)
-            savingsPercentage = Math.round(selectedBundleDiscount * 100);
+            if (directPrice !== null) {
+                // Convert API value (cents) to euros for display
+                result = directPrice / 100;
+                console.log(`Using direct API price: ${result} €`);
+                
+                // If a bundle is selected, calculate what the price would be without the discount
+                if (selectedBundle) {
+                    fullPrice = result / (1 - selectedBundleDiscount);
+                    savingsPercentage = Math.round(selectedBundleDiscount * 100);
+                } else {
+                    fullPrice = result;
+                }
+            } else {
+                // Fall back to the calculation method if direct price is not available
+                calculateFromAddonPrices();
+            }
+        } else {
+            // If no direct pricing available, use calculation
+            calculateFromAddonPrices();
+        }
+        
+        // Calculate price based on individual addon prices (fallback method)
+        function calculateFromAddonPrices() {
+            console.log("Using calculated addon prices");
+            
+            // Get base price from pricing model
+            let basePrice = isYearlyChecked 
+                ? window.pricingModel.basePrices.yearly
+                : window.pricingModel.basePrices.monthly;
+                
+            result = licences * basePrice;
+            let bundleAddOns = [];
+            let extraAddOns = 0;
+            
+            // Get bundle addons if a bundle is selected
+            if (selectedBundle) {
+                bundleAddOns = window.pricingModel.bundles[selectedBundle].addons;
+            }
+            
+            // Calculate bundle price and extra add-ons separately
+            checkboxes.forEach(checkbox => {
+                const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
+                if (checkboxWrapper.classList.contains('w--redirected-checked')) {
+                    let addValue = isYearlyChecked 
+                        ? parseFloat(checkbox.getAttribute('calculator-add-yearly')) || 0 
+                        : parseFloat(checkbox.getAttribute('calculator-add')) || 0;
+                    
+                    // Add to the appropriate category
+                    if (selectedBundle && bundleAddOns.includes(checkbox.id)) {
+                        // This add-on is part of the bundle and gets the discount
+                        result += addValue * licences;
+                    } else if (selectedBundle) {
+                        // This is an extra add-on outside the bundle - track separately
+                        extraAddOns += addValue * licences;
+                    } else {
+                        // No bundle selected, just add to the total
+                        result += addValue * licences;
+                    }
+                }
+            });
+            
+            // Store the "ohne Bundle" price for reference (before any discounts)
+            fullPrice = result + extraAddOns;
+            
+            // Apply bundle discount to only the bundle items
+            if (selectedBundle) {
+                const discountedPrice = result * (1 - selectedBundleDiscount);
+                // Add the extra add-ons without discount
+                result = discountedPrice + extraAddOns;
+                
+                // Calculate savings percentage (for the bundled items only)
+                savingsPercentage = Math.round(selectedBundleDiscount * 100);
+            }
         }
         
         // Update price displays
