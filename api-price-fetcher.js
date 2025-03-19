@@ -973,8 +973,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 result = directPrice / 100;
                 console.log(`Using direct API price: ${result} € (${isYearlyChecked ? 'yearly plan, monthly payment' : 'monthly plan'})`);
                 
-                // If a bundle is selected, calculate what the price would be without the discount
-                // For the display, we'll show the API price directly and calculate what the regular price would be
+                // If a bundle is selected, use the exact API price and apply the discount
                 if (selectedBundle) {
                     // Get discount percentage from bundle selection
                     if (selectedBundle === 'architekt') {
@@ -985,8 +984,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         savingsPercentage = 35;
                     }
                     
-                    // Calculate the "ohne Bundle" price by adding the discount back
-                    fullPrice = result / (1 - (savingsPercentage / 100));
+                    // The full price is the API price without discount (we show this in "ohne Bundle")
+                    fullPrice = result;
+                    
+                    // Apply the discount to get the actual price the user will pay
+                    result = result * (1 - (savingsPercentage / 100));
+                    
+                    console.log(`Bundle selected: ${selectedBundle}, Discount: ${savingsPercentage}%`);
+                    console.log(`Full price: ${fullPrice}€, Discounted price: ${result}€`);
                 } else {
                     fullPrice = result;
                     savingsPercentage = 0;
@@ -1054,13 +1059,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     savingsPercentage = 35;
                 }
                 
-                // Apply the discount
+                // The full price without discount (we'll show this in "ohne Bundle")
+                fullPrice = result + extraAddOns;
+                
+                // Apply the discount to the bundle items
                 const discountedPrice = result * (1 - (savingsPercentage / 100));
                 // Add the extra add-ons without discount
                 result = discountedPrice + extraAddOns;
                 
-                // fullPrice already calculated above (for ohne Bundle display)
-                fullPrice = result / (1 - (savingsPercentage / 100));
+                console.log(`Calculated bundle price - Full: ${fullPrice}€, Discounted: ${result}€, Discount: ${savingsPercentage}%`);
             }
         }
         
