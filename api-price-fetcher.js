@@ -50,6 +50,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Show loading state
             displayLoadingState(true);
             
+            // Set initial values for licenses and staff to 1
+            setInitialValues();
+            
             // Setup event listeners first so they're ready when needed
             setupEventListeners();
             
@@ -68,6 +71,21 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log("Price calculator initialized with FlexXter API data");
         } catch (error) {
             handleApiError(error);
+        }
+    }
+    
+    // Function to set initial values for licenses and staff
+    function setInitialValues() {
+        // Set licenses to 1
+        if (licencesInput) {
+            licencesInput.textContent = "1";
+            setSliderValue(licencesInput, 1);
+        }
+        
+        // Set staff to 1
+        if (staffInput) {
+            staffInput.textContent = "1";
+            setSliderValue(staffInput, 1);
         }
     }
 
@@ -153,7 +171,26 @@ document.addEventListener("DOMContentLoaded", function () {
             const addOnsParam = selectedAddOns || Object.keys(API_CONFIG.addonMapping).join(',');
             
             // Get number of licenses and payment term
-            const licenses = parseInt(licencesInput?.textContent) || 1;
+            let licenses = parseInt(licencesInput?.textContent) || 1;
+            
+            // Ensure minimum of 1 license (and at least 2 if a bundle is selected)
+            let minLicenses = 1;
+            const hasBundle = document.getElementById('architekt')?.checked || 
+                             document.getElementById('baunternehmen')?.checked || 
+                             document.getElementById('flexxter_full')?.checked;
+            
+            if (hasBundle) {
+                minLicenses = 2; // Bundles require at least 2 licenses
+            }
+            
+            if (licenses < minLicenses) {
+                licenses = minLicenses;
+                if (licencesInput) {
+                    licencesInput.textContent = minLicenses.toString();
+                    setSliderValue(licencesInput, minLicenses);
+                }
+            }
+            
             const isYearly = yearlyRadio?.checked || false;
             const paymentTerm = isYearly ? 2 : 1; // 1 = monthly, 2 = yearly
             
@@ -686,10 +723,14 @@ document.addEventListener("DOMContentLoaded", function () {
         const bundle = window.pricingModel.bundles[bundleId];
         if (!bundle) return;
         
-        // Set licenses and staff values
-        setSliderValue(licencesInput, bundle.licences);
+        // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
+        const licenseValue = Math.max(2, bundle.licences);
+        setSliderValue(licencesInput, licenseValue);
+        
+        // Set staff to at least 1
         if (staffInput) {
-            setSliderValue(staffInput, bundle.staff);
+            const staffValue = Math.max(1, bundle.staff);
+            setSliderValue(staffInput, staffValue);
         }
         
         // Force yearly subscription
@@ -790,7 +831,23 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateResult() {
         if (!window.pricingModel) return;
         
-        let licences = parseFloat(licencesInput.textContent) || 0;
+        let licences = parseFloat(licencesInput.textContent) || 1;
+        
+        // Ensure minimum of 1 license (and at least 2 if a bundle is selected)
+        let minLicenses = 1;
+        const hasBundle = document.getElementById('architekt')?.checked || 
+                         document.getElementById('baunternehmen')?.checked || 
+                         document.getElementById('flexxter_full')?.checked;
+        
+        if (hasBundle) {
+            minLicenses = 2; // Bundles require at least 2 licenses
+        }
+        
+        if (licences < minLicenses) {
+            licences = minLicenses;
+            licencesInput.textContent = minLicenses.toString();
+            setSliderValue(licencesInput, minLicenses);
+        }
         
         const isYearlyChecked = yearlyRadio.closest('.form_radio').querySelector('.w-radio-input')
             .classList.contains('w--redirected-checked');
