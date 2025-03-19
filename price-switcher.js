@@ -27,6 +27,22 @@ document.addEventListener("DOMContentLoaded", function () {
         .price_right.hidden {
             display: none;
         }
+        
+        /* Animation helpers */
+        .animate-card {
+            animation: fadeInUp 0.3s forwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     `;
     document.head.appendChild(styleElement);
 
@@ -180,6 +196,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (monthlyCard && yearlyCard) {
             monthlyCard.classList.add('hidden');
             yearlyCard.classList.remove('hidden');
+            yearlyCard.classList.add('animate-card');
         }
         
         // Add click event to the switcher
@@ -198,10 +215,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     grabElement.style.transform = 'translateX(0)';
                 }
                 
-                // Show yearly card, hide monthly card
+                // Show yearly card, hide monthly card with animation
                 if (monthlyCard && yearlyCard) {
-                    monthlyCard.classList.add('hidden');
-                    yearlyCard.classList.remove('hidden');
+                    // First remove any previous animation classes
+                    yearlyCard.classList.remove('animate-card');
+                    monthlyCard.classList.remove('animate-card');
+                    
+                    // Add fade-out class to monthly card
+                    monthlyCard.classList.add('fade-out');
+                    
+                    // After a short delay, hide monthly and show yearly with animation
+                    setTimeout(() => {
+                        monthlyCard.classList.add('hidden');
+                        monthlyCard.classList.remove('fade-out');
+                        yearlyCard.classList.remove('hidden');
+                        yearlyCard.classList.add('animate-card');
+                    }, 300);
                 }
             } else {
                 // Monthly selected
@@ -214,10 +243,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     grabElement.style.transform = 'translateX(100%)';
                 }
                 
-                // Show monthly card, hide yearly card
+                // Show monthly card, hide yearly card with animation
                 if (monthlyCard && yearlyCard) {
-                    monthlyCard.classList.remove('hidden');
-                    yearlyCard.classList.add('hidden');
+                    // First remove any previous animation classes
+                    yearlyCard.classList.remove('animate-card');
+                    monthlyCard.classList.remove('animate-card');
+                    
+                    // Add fade-out class to yearly card
+                    yearlyCard.classList.add('fade-out');
+                    
+                    // After a short delay, hide yearly and show monthly with animation
+                    setTimeout(() => {
+                        yearlyCard.classList.add('hidden');
+                        yearlyCard.classList.remove('fade-out');
+                        monthlyCard.classList.remove('hidden');
+                        monthlyCard.classList.add('animate-card');
+                    }, 300);
                 }
             }
             

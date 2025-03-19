@@ -255,10 +255,16 @@ document.addEventListener("DOMContentLoaded", function () {
         let fullPrice = result + extraAddOns;
         
         // Apply bundle discount to only the bundle items
+        let discountedPrice = 0;
+        let savingsPercentage = 0;
+        
         if (selectedBundle) {
-            result = result * (1 - selectedBundleDiscount);
+            discountedPrice = result * (1 - selectedBundleDiscount);
             // Add the extra add-ons without discount
-            result += extraAddOns;
+            result = discountedPrice + extraAddOns;
+            
+            // Calculate savings percentage (for the bundled items only)
+            savingsPercentage = Math.round(selectedBundleDiscount * 100);
         }
         
         // Update price displays
@@ -266,7 +272,30 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Update "ohne Bundle" price if visible
         if (bundleSection.style.display === 'block') {
-            ohneBundlePrice.querySelector('span').textContent = fullPrice.toFixed(2);
+            // Find the price text element
+            const priceElement = bundleSection.querySelector('.calculator_price:first-child');
+            const ohneBundleSpan = ohneBundlePrice.querySelector('span');
+            
+            // Format the full price with strikethrough and add the savings percentage
+            if (selectedBundle) {
+                // Update the label to show savings percentage
+                if (priceElement) {
+                    priceElement.innerHTML = `Preis pro Monat ohne Bundle <span style="color: #64bc2d; font-weight: bold;">(${savingsPercentage}% gespart)</span>:`;
+                }
+                
+                // Display the original price with strikethrough
+                if (ohneBundleSpan) {
+                    ohneBundleSpan.innerHTML = `<span style="text-decoration: line-through;">${fullPrice.toFixed(2)}</span>`;
+                }
+            } else {
+                // Regular display without bundle
+                if (priceElement) {
+                    priceElement.textContent = 'Preis pro Monat ohne Bundle:';
+                }
+                if (ohneBundleSpan) {
+                    ohneBundleSpan.textContent = fullPrice.toFixed(2);
+                }
+            }
         }
     }
     
