@@ -151,10 +151,27 @@ document.addEventListener("DOMContentLoaded", function () {
             // Fetch yearly pricing (lz=2)
             const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${allAddOns}`;
             
-            // Fetch data for different bundles
-            const architectBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&bundle=architect`;
-            const constructionBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&bundle=construction`;
-            const completeUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&bundle=flexxtercomplete`;
+            // Define architect bundle addons
+            const architectAddons = [
+                'incidents', 'construction-diary', 'forms', 'flexxter-ai', 
+                'custom-project-variables', 'project-baseplans', 'project-expanses', 'whatsapp'
+            ].join(',');
+            
+            // Define construction bundle addons
+            const constructionAddons = [
+                'incidents', 'construction-diary', 'gangs', 'time-recording', 
+                'forms', 'invoices', 'flexxter-ai', 'custom-project-variables', 
+                'project-baseplans', 'project-expanses', 'whatsapp'
+            ].join(',');
+                
+            // Fetch bundle data using addons parameter
+            const architectBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${architectAddons}`;
+            const constructionBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${constructionAddons}`;
+            const completeUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${allAddOns}`;
+            
+            console.log("API URLs:");
+            console.log("Monthly: " + monthlyUrl);
+            console.log("Yearly: " + yearlyUrl);
             
             // Fetch all data in parallel
             const [
