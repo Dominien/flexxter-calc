@@ -346,6 +346,17 @@ document.addEventListener("DOMContentLoaded", function () {
         radio.addEventListener("change", function() {
             // When switching to monthly, deselect all bundles as they're only available yearly
             if (radio.value === "Monatlich" && radio.checked) {
+                // Check if any bundle was selected
+                const wasAnyBundleSelected = architektBundle.checked || bauunternehmenBundle.checked || flexxterFullBundle.checked;
+                
+                // Store the selected addons state before clearing if a bundle was selected
+                const selectedAddons = {};
+                if (wasAnyBundleSelected) {
+                    checkboxes.forEach(checkbox => {
+                        selectedAddons[checkbox.id] = checkbox.checked;
+                    });
+                }
+                
                 // Uncheck all bundle checkboxes
                 architektBundle.checked = false;
                 bauunternehmenBundle.checked = false;
@@ -359,6 +370,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Hide the bundle price display section
                 if (bundleSection) {
                     bundleSection.style.display = 'none';
+                }
+                
+                // If a bundle was selected, reset all add-ons (uncheck them)
+                if (wasAnyBundleSelected) {
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                        updateCheckboxVisual(checkbox, false);
+                    });
                 }
             }
             
