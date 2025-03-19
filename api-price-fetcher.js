@@ -56,7 +56,10 @@ document.addEventListener("DOMContentLoaded", function () {
             // Show loading state
             displayLoadingState(true);
             
-            // Get the pricing data
+            // Setup event listeners first so they're ready when needed
+            setupEventListeners();
+            
+            // Get the pricing data for initial state
             const pricingData = await fetchPricingData();
             
             // Initialize calculator with fetched data
@@ -64,9 +67,6 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Hide loading state
             displayLoadingState(false);
-            
-            // Setup event listeners for UI updates
-            setupEventListeners();
             
             // Initial calculation
             updateResult();
@@ -241,19 +241,25 @@ document.addEventListener("DOMContentLoaded", function () {
                         return {};
                     }
                     
+                    // Get selected add-ons count
+                    const selectedAddOnsArray = addOnsParam.split(',');
+                    const addonCount = selectedAddOnsArray.length || Object.keys(API_CONFIG.addonMapping).length;
+                    
                     // Estimate addon price (this is an approximation)
                     const addonTotalPrice = totalPrice - (basePrice * licenses);
-                    const addonCount = allAddOns.split(',').length;
                     const estimatedAddonPrice = addonTotalPrice / addonCount / licenses;
                     
                     // Create addon price object
                     const addonPrices = {};
                     
-                    Object.keys(API_CONFIG.addonMapping).forEach(addonKey => {
-                        const domId = API_CONFIG.addonMapping[addonKey];
-                        addonPrices[addonKey] = { 
-                            price: estimatedAddonPrice 
-                        };
+                    // Only create prices for the selected add-ons
+                    selectedAddOnsArray.forEach(addonKey => {
+                        if (addonKey && API_CONFIG.addonMapping[addonKey]) {
+                            const domId = API_CONFIG.addonMapping[addonKey];
+                            addonPrices[addonKey] = { 
+                                price: estimatedAddonPrice 
+                            };
+                        }
                     });
                     
                     return addonPrices;
@@ -725,7 +731,8 @@ document.addEventListener("DOMContentLoaded", function () {
             bundleSection.style.display = 'none';
         }
         
-        updateResult();
+        // Don't call updateResult() here - refreshPricingData will be called via event listener
+        // and that will trigger the appropriate API call and result update
     }
     
     // Function to update checkbox visual state
