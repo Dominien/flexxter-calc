@@ -107,64 +107,93 @@ document.addEventListener("DOMContentLoaded", function () {
         priceCache.isFetching = true;
 
         try {
-            // After testing, we found the API doesn't return valid JSON
-            // We'll use default pricing data instead
-            console.log("Using default pricing data instead of API calls");
-            
-            // Default price data (simulating API response structure)
-            const monthlyData = { 
-                base_price: 59.9, 
-                addons: {
-                    "incidents": { price: 10 },
-                    "construction-diary": { price: 10 },
-                    "gangs": { price: 15 },
-                    "time-recording": { price: 15 },
-                    "timerecording-geolocation": { price: 5 },
-                    "datev-export": { price: 5 },
-                    "forms": { price: 10 },
-                    "resources": { price: 10 },
-                    "invoices": { price: 15 },
-                    "flexxter-ai": { price: 10 },
-                    "open-api": { price: 5 },
-                    "custom-project-variables": { price: 5 },
-                    "bim-features": { price: 15 },
-                    "project-baseplans": { price: 10 },
-                    "project-expanses": { price: 10 },
-                    "whatsapp": { price: 5 },
-                    "lean-construction": { price: 10 },
-                    "nfc": { price: 5 },
-                    "foreman": { price: 5 }
-                }
+            // Create a function to extract prices from HTML response
+            const extractPriceData = (html) => {
+                // Extract base price
+                const basePriceMatch = html.match(/<span[^>]*id="gesamtpreis"[^>]*>([0-9,.]+)<\/span>/);
+                const basePrice = basePriceMatch ? parseFloat(basePriceMatch[1].replace(',', '.')) : null;
+                
+                // Extract addon prices
+                const addons = {};
+                
+                Object.keys(API_CONFIG.addonMapping).forEach(addonKey => {
+                    // Look for addon price elements
+                    const regex = new RegExp(`<span[^>]*data-addon="${addonKey}"[^>]*>([0-9,.]+)<\/span>`);
+                    const match = html.match(regex);
+                    
+                    if (match) {
+                        const price = parseFloat(match[1].replace(',', '.'));
+                        addons[addonKey] = { price };
+                    }
+                });
+                
+                return {
+                    base_price: basePrice,
+                    addons
+                };
             };
             
-            const yearlyData = { 
-                base_price: 49.9, 
-                addons: {
-                    "incidents": { price: 8 },
-                    "construction-diary": { price: 8 },
-                    "gangs": { price: 12 },
-                    "time-recording": { price: 12 },
-                    "timerecording-geolocation": { price: 4 },
-                    "datev-export": { price: 4 },
-                    "forms": { price: 8 },
-                    "resources": { price: 8 },
-                    "invoices": { price: 12 },
-                    "flexxter-ai": { price: 8 },
-                    "open-api": { price: 4 },
-                    "custom-project-variables": { price: 4 },
-                    "bim-features": { price: 12 },
-                    "project-baseplans": { price: 8 },
-                    "project-expanses": { price: 8 },
-                    "whatsapp": { price: 4 },
-                    "lean-construction": { price: 8 },
-                    "nfc": { price: 4 },
-                    "foreman": { price: 4 }
-                }
+            // Create a function to extract bundle price
+            const extractBundlePrice = (html) => {
+                // Extract total price
+                const totalPriceMatch = html.match(/<span[^>]*id="gesamtpreis"[^>]*>([0-9,.]+)<\/span>/);
+                const totalPrice = totalPriceMatch ? parseFloat(totalPriceMatch[1].replace(',', '.')) : null;
+                
+                return { total_price: totalPrice };
             };
             
-            const architectData = { total_price: 99.9 };
-            const constructionData = { total_price: 129.9 };
-            const completeData = { total_price: 199.9 };
+            // Define the add-ons we want to get prices for
+            const allAddOns = Object.keys(API_CONFIG.addonMapping).join(',');
+            
+            // Fetch monthly pricing (lz=1)
+            const monthlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=1&licenses=1&addons=${allAddOns}`;
+            
+            // Fetch yearly pricing (lz=2)
+            const yearlyUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&addons=${allAddOns}`;
+            
+            // Fetch data for different bundles
+            const architectBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&bundle=architect`;
+            const constructionBundleUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&bundle=construction`;
+            const completeUrl = `${API_CONFIG.baseUrl}?public=true&am=2&lz=2&licenses=1&bundle=flexxtercomplete`;
+            
+            // Fetch all data in parallel
+            const [
+                monthlyResponse,
+                yearlyResponse,
+                architectResponse,
+                constructionResponse,
+                completeResponse
+            ] = await Promise.all([
+                fetch(monthlyUrl),
+                fetch(yearlyUrl),
+                fetch(architectBundleUrl),
+                fetch(constructionBundleUrl),
+                fetch(completeUrl)
+            ]);
+            
+            // Get HTML responses
+            const monthlyHtml = await monthlyResponse.text();
+            const yearlyHtml = await yearlyResponse.text();
+            const architectHtml = await architectResponse.text();
+            const constructionHtml = await constructionResponse.text();
+            const completeHtml = await completeResponse.text();
+            
+            // Extract price data from HTML
+            const monthlyData = extractPriceData(monthlyHtml);
+            const yearlyData = extractPriceData(yearlyHtml);
+            const architectData = extractBundlePrice(architectHtml);
+            const constructionData = extractBundlePrice(constructionHtml);
+            const completeData = extractBundlePrice(completeHtml);
+            
+            console.log("Extracted monthly data:", JSON.stringify(monthlyData).substring(0, 100) + "...");
+            console.log("Extracted yearly data:", JSON.stringify(yearlyData).substring(0, 100) + "...");
+            
+            // If base prices are not found, use defaults
+            if (!monthlyData.base_price) monthlyData.base_price = 59.9;
+            if (!yearlyData.base_price) yearlyData.base_price = 49.9;
+            if (!architectData.total_price) architectData.total_price = 99.9;
+            if (!constructionData.total_price) constructionData.total_price = 129.9;
+            if (!completeData.total_price) completeData.total_price = 199.9;
             
             // Process and combine the data
             const pricingData = processPricingData(
