@@ -270,17 +270,48 @@ document.addEventListener("DOMContentLoaded", function () {
         // Update price displays
         resultElement.textContent = result.toFixed(2);
         
+        // Get the main price result wrapper
+        const mainResultWrapper = resultElement.closest('.calculator_result-wrapper');
+        
+        // Update the main price display to show savings percentage
+        if (selectedBundle) {
+            // Check if there's already a savings indicator
+            let savingsElement = mainResultWrapper.querySelector('.savings-indicator');
+            
+            if (!savingsElement) {
+                // Create a new element to show the savings
+                savingsElement = document.createElement('div');
+                savingsElement.className = 'savings-indicator';
+                savingsElement.style.cssText = 'color: #64bc2d; font-weight: bold; font-size: 14px; margin-top: 4px; text-align: right;';
+                
+                // Insert it after the price
+                const priceElement = resultElement.parentElement;
+                if (priceElement && priceElement.parentElement) {
+                    priceElement.parentElement.appendChild(savingsElement);
+                }
+            }
+            
+            // Update the savings text
+            savingsElement.textContent = `(${savingsPercentage}% gespart)`;
+        } else {
+            // Remove savings indicator if no bundle is selected
+            const savingsElement = mainResultWrapper.querySelector('.savings-indicator');
+            if (savingsElement) {
+                savingsElement.remove();
+            }
+        }
+        
         // Update "ohne Bundle" price if visible
         if (bundleSection.style.display === 'block') {
             // Find the price text element
             const priceElement = bundleSection.querySelector('.calculator_price:first-child');
             const ohneBundleSpan = ohneBundlePrice.querySelector('span');
             
-            // Format the full price with strikethrough and add the savings percentage
+            // Format the full price with strikethrough
             if (selectedBundle) {
-                // Update the label to show savings percentage
+                // Update the label text (without savings percentage now)
                 if (priceElement) {
-                    priceElement.innerHTML = `Preis pro Monat ohne Bundle <span style="color: #64bc2d; font-weight: bold;">(${savingsPercentage}% gespart)</span>:`;
+                    priceElement.textContent = 'Preis pro Monat ohne Bundle:';
                 }
                 
                 // Display the original price with strikethrough
