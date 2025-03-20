@@ -896,6 +896,40 @@ document.addEventListener("DOMContentLoaded", function () {
             const checkboxObserver = new MutationObserver(() => {
                 // Only refresh pricing data if not currently applying a bundle
                 if (!isApplyingBundle) {
+                    // Check if a bundle is selected and if this checkbox is part of that bundle
+                    const hasBundle = document.getElementById('architekt')?.checked || 
+                                     document.getElementById('baunternehmen')?.checked || 
+                                     document.getElementById('flexxter_full')?.checked;
+                    
+                    if (hasBundle) {
+                        let selectedBundle = null;
+                        if (document.getElementById('architekt')?.checked) selectedBundle = 'architekt';
+                        else if (document.getElementById('baunternehmen')?.checked) selectedBundle = 'baunternehmen';
+                        else if (document.getElementById('flexxter_full')?.checked) selectedBundle = 'flexxter_full';
+                        
+                        if (selectedBundle && window.pricingModel?.bundles?.[selectedBundle]) {
+                            // If this checkbox is part of the bundle and being unchecked, invalidate the bundle
+                            const bundleAddons = window.pricingModel.bundles[selectedBundle].addons;
+                            const isPartOfBundle = bundleAddons.includes(checkbox.id);
+                            const isChecked = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input').classList.contains('w--redirected-checked');
+                            
+                            if (isPartOfBundle && !isChecked) {
+                                console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected via MutationObserver`);
+                                // Deselect the bundle
+                                const bundleCheckbox = document.getElementById(selectedBundle);
+                                if (bundleCheckbox) {
+                                    bundleCheckbox.checked = false;
+                                    updateCheckboxVisual(bundleCheckbox, false);
+                                    
+                                    // Also hide the bundle price section
+                                    if (bundleSection) {
+                                        bundleSection.style.display = 'none';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     refreshPricingData();
                 }
             });
@@ -904,6 +938,39 @@ document.addEventListener("DOMContentLoaded", function () {
             checkbox.addEventListener("change", function() {
                 // Only refresh pricing data if not currently applying a bundle
                 if (!isApplyingBundle) {
+                    // Check if a bundle is selected and if this checkbox is part of that bundle
+                    const hasBundle = document.getElementById('architekt')?.checked || 
+                                     document.getElementById('baunternehmen')?.checked || 
+                                     document.getElementById('flexxter_full')?.checked;
+                    
+                    if (hasBundle) {
+                        let selectedBundle = null;
+                        if (document.getElementById('architekt')?.checked) selectedBundle = 'architekt';
+                        else if (document.getElementById('baunternehmen')?.checked) selectedBundle = 'baunternehmen';
+                        else if (document.getElementById('flexxter_full')?.checked) selectedBundle = 'flexxter_full';
+                        
+                        if (selectedBundle && window.pricingModel?.bundles?.[selectedBundle]) {
+                            // If this checkbox is part of the bundle and being unchecked, invalidate the bundle
+                            const bundleAddons = window.pricingModel.bundles[selectedBundle].addons;
+                            const isPartOfBundle = bundleAddons.includes(checkbox.id);
+                            
+                            if (isPartOfBundle && !checkbox.checked) {
+                                console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected`);
+                                // Deselect the bundle
+                                const bundleCheckbox = document.getElementById(selectedBundle);
+                                if (bundleCheckbox) {
+                                    bundleCheckbox.checked = false;
+                                    updateCheckboxVisual(bundleCheckbox, false);
+                                    
+                                    // Also hide the bundle price section
+                                    if (bundleSection) {
+                                        bundleSection.style.display = 'none';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     refreshPricingData();
                 }
             });
@@ -1233,6 +1300,46 @@ document.addEventListener("DOMContentLoaded", function () {
             // Get bundle addons if a bundle is selected
             if (selectedBundle) {
                 bundleAddOns = window.pricingModel.bundles[selectedBundle].addons;
+            }
+            
+            // Validate that all bundle add-ons are actually selected
+            // If any bundle add-on is missing, the bundle should no longer be valid
+            if (selectedBundle && bundleAddOns.length > 0) {
+                let allBundleAddonsSelected = true;
+                
+                // Check if all add-ons in the bundle are still selected
+                for (const addonId of bundleAddOns) {
+                    const addon = document.getElementById(addonId);
+                    if (addon && !addon.checked) {
+                        allBundleAddonsSelected = false;
+                        console.log(`Bundle ${selectedBundle} validation failed: ${addonId} is not selected`);
+                        break;
+                    }
+                }
+                
+                // If not all bundle add-ons are selected, invalidate the bundle
+                if (!allBundleAddonsSelected) {
+                    console.log(`Invalidating bundle ${selectedBundle} during price calculation`);
+                    selectedBundle = null;
+                    bundleAddOns = [];
+                    
+                    // This needs to be done outside the current function to avoid UI update issues
+                    setTimeout(() => {
+                        const bundleCheckboxes = ['architekt', 'baunternehmen', 'flexxter_full'];
+                        bundleCheckboxes.forEach(id => {
+                            const bundleCheckbox = document.getElementById(id);
+                            if (bundleCheckbox && bundleCheckbox.checked) {
+                                bundleCheckbox.checked = false;
+                                updateCheckboxVisual(bundleCheckbox, false);
+                            }
+                        });
+                        
+                        // Hide the bundle price section
+                        if (bundleSection) {
+                            bundleSection.style.display = 'none';
+                        }
+                    }, 50);
+                }
             }
             
             // Calculate bundle price and extra add-ons separately
