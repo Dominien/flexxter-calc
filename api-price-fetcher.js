@@ -1199,6 +1199,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     console.log(`Bundle selected: ${selectedBundle}, Discount: ${savingsPercentage}%`);
                     console.log(`Full price: ${fullPrice}€, Discounted price: ${result}€`);
                 } else {
+                    // For non-bundle selection, use the regular_monthly_price if available
+                    // This ensures consistent pricing when switching between bundle and non-bundle
+                    if (directData.regular_monthly_price) {
+                        result = directData.regular_monthly_price / 100;
+                        console.log(`Using API regular_monthly_price for standard pricing: ${result}€`);
+                    }
                     fullPrice = result;
                     savingsPercentage = 0;
                 }
