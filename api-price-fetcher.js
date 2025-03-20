@@ -1381,12 +1381,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 // The full price without discount (we'll show this in "ohne Bundle")
                 fullPrice = result + extraAddOns;
                 
-                // Apply the discount to the bundle items
-                const discountedPrice = result * (1 - (savingsPercentage / 100));
-                // Add the extra add-ons without discount
-                result = discountedPrice + extraAddOns;
+                // IMPORTANT: We don't apply any discount here in the fallback method
+                // The API already gives us the correct prices, including discounts for bundles
+                // Just add any extra add-ons (those not part of the bundle) to the result
+                result = result + extraAddOns;
                 
-                console.log(`Calculated bundle price - Full: ${fullPrice}€, Discounted: ${result}€, Discount: ${savingsPercentage}%`);
+                console.log(`Calculated bundle price (no additional discount applied): Full: ${fullPrice}€, Final: ${result}€`);
             }
         }
         
