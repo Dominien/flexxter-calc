@@ -1303,8 +1303,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         priceDiv.appendChild(savingsDiv);
                     }
                     
-                    // Update the savings text
-                    savingsDiv.textContent = `(${savingsPercentage}% gespart)`;
+                    // Calculate the amount saved in euros
+                    const savedAmount = fullPrice - result;
+                    
+                    // Update the savings text to show the saved amount in euros
+                    savingsDiv.textContent = `(${savedAmount.toFixed(2)} € gespart)`;
                 } else {
                     // Remove savings div if exists and no bundle is selected
                     if (savingsDiv) {
