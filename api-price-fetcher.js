@@ -745,11 +745,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Set up event listeners for calculator updates
     function setupEventListeners() {
+        // Create a debounced version of refreshPricingData for slider changes
+        const debouncedRefreshPricingForSliders = (function() {
+            let timeout;
+            return function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    console.log("Executing debounced refresh pricing for sliders");
+                    refreshPricingData();
+                }, 300); // Longer timeout for sliders to reduce API calls during dragging
+            };
+        })();
+        
         // Listen for changes in licenses
         if (licencesInput) {
             const observer = new MutationObserver(() => {
-                // Refresh pricing data when licenses change
-                refreshPricingData();
+                // Only call the API if we're not currently applying a bundle
+                if (!isApplyingBundle && !bundleOperationInProgress) {
+                    // Use debounced refresh for slider changes
+                    debouncedRefreshPricingForSliders();
+                }
             });
             observer.observe(licencesInput, { childList: true, subtree: true, characterData: true });
         }
