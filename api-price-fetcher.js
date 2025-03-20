@@ -890,12 +890,26 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
         
-        // Listen for changes in add-ons
+        // Create a debounced version of refreshPricingData for addon checkboxes
+        const debouncedRefreshPricingForAddons = (function() {
+            let timeout;
+            return function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    console.log("Executing debounced refresh pricing for addons");
+                    refreshPricingData();
+                }, 200);
+            };
+        })();
+        
+        // Listen for changes in add-ons - consolidate to a single handler system
         checkboxes.forEach(checkbox => {
             const checkboxWrapper = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input');
-            const checkboxObserver = new MutationObserver(() => {
+            
+            // Single function to handle both event types with the same logic
+            const handleAddonChange = () => {
                 // Only refresh pricing data if not currently applying a bundle
-                if (!isApplyingBundle) {
+                if (!isApplyingBundle && !bundleOperationInProgress) {
                     // Check if a bundle is selected and if this checkbox is part of that bundle
                     const hasBundle = document.getElementById('architekt')?.checked || 
                                      document.getElementById('baunternehmen')?.checked || 
@@ -911,10 +925,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             // If this checkbox is part of the bundle and being unchecked, invalidate the bundle
                             const bundleAddons = window.pricingModel.bundles[selectedBundle].addons;
                             const isPartOfBundle = bundleAddons.includes(checkbox.id);
-                            const isChecked = checkbox.closest('.form_checkbox').querySelector('.w-checkbox-input').classList.contains('w--redirected-checked');
+                            const isChecked = checkbox.checked;
                             
                             if (isPartOfBundle && !isChecked) {
-                                console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected via MutationObserver`);
+                                console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected`);
+                                bundleOperationInProgress = true;
                                 // Deselect the bundle
                                 const bundleCheckbox = document.getElementById(selectedBundle);
                                 if (bundleCheckbox) {
@@ -926,58 +941,43 @@ document.addEventListener("DOMContentLoaded", function () {
                                         bundleSection.style.display = 'none';
                                     }
                                 }
+                                
+                                // Use debounced refresh to avoid multiple API calls
+                                debouncedRefreshPricingForAddons();
+                                
+                                // Reset flag after a short delay
+                                setTimeout(() => {
+                                    bundleOperationInProgress = false;
+                                }, 250);
+                                return; // Exit early to avoid double API calls
                             }
                         }
                     }
                     
-                    refreshPricingData();
+                    // Use debounced refresh for regular addon changes
+                    debouncedRefreshPricingForAddons();
+                }
+            };
+            
+            // Use a single MutationObserver for visual state changes
+            const checkboxObserver = new MutationObserver(() => {
+                if (!isApplyingBundle && !bundleOperationInProgress) {
+                    // Only handle the checkbox if it's actually changed by the user
+                    // and make sure there's no mismatch between visual and actual state
+                    const visuallyChecked = checkboxWrapper.classList.contains('w--redirected-checked');
+                    if (checkbox.checked !== visuallyChecked) {
+                        checkbox.checked = visuallyChecked;
+                        handleAddonChange();
+                    }
                 }
             });
             checkboxObserver.observe(checkboxWrapper, { attributes: true, attributeFilter: ['class'] });
             
-            checkbox.addEventListener("change", function() {
-                // Only refresh pricing data if not currently applying a bundle
-                if (!isApplyingBundle) {
-                    // Check if a bundle is selected and if this checkbox is part of that bundle
-                    const hasBundle = document.getElementById('architekt')?.checked || 
-                                     document.getElementById('baunternehmen')?.checked || 
-                                     document.getElementById('flexxter_full')?.checked;
-                    
-                    if (hasBundle) {
-                        let selectedBundle = null;
-                        if (document.getElementById('architekt')?.checked) selectedBundle = 'architekt';
-                        else if (document.getElementById('baunternehmen')?.checked) selectedBundle = 'baunternehmen';
-                        else if (document.getElementById('flexxter_full')?.checked) selectedBundle = 'flexxter_full';
-                        
-                        if (selectedBundle && window.pricingModel?.bundles?.[selectedBundle]) {
-                            // If this checkbox is part of the bundle and being unchecked, invalidate the bundle
-                            const bundleAddons = window.pricingModel.bundles[selectedBundle].addons;
-                            const isPartOfBundle = bundleAddons.includes(checkbox.id);
-                            
-                            if (isPartOfBundle && !checkbox.checked) {
-                                console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected`);
-                                // Deselect the bundle
-                                const bundleCheckbox = document.getElementById(selectedBundle);
-                                if (bundleCheckbox) {
-                                    bundleCheckbox.checked = false;
-                                    updateCheckboxVisual(bundleCheckbox, false);
-                                    
-                                    // Also hide the bundle price section
-                                    if (bundleSection) {
-                                        bundleSection.style.display = 'none';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    refreshPricingData();
-                }
-            });
+            // Direct change event still needed for user interactions
+            checkbox.addEventListener("change", handleAddonChange);
         });
         
         // Listen for bundle selection with a single handler to prevent cascading events
-        let bundleOperationInProgress = false;
         const bundleCheckboxes = document.querySelectorAll('#architekt, #baunternehmen, #flexxter_full');
         
         // Create a debounced version of refreshPricingData
@@ -1076,8 +1076,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
-    // Flag to prevent multiple API calls during bundle application
+    // Flags to prevent multiple API calls during operations
     let isApplyingBundle = false;
+    let bundleOperationInProgress = false;
     
     // Apply selected bundle
     function applyBundle(bundleId) {
