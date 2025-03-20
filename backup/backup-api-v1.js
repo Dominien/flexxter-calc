@@ -925,105 +925,52 @@ document.addEventListener("DOMContentLoaded", function () {
             const handleAddonChange = () => {
                 // Only refresh pricing data if not currently applying a bundle
                 if (!isApplyingBundle && !bundleOperationInProgress) {
-                    bundleOperationInProgress = true;
+                    // Check if a bundle is selected and if this checkbox is part of that bundle
+                    const hasBundle = document.getElementById('architekt')?.checked || 
+                                     document.getElementById('baunternehmen')?.checked || 
+                                     document.getElementById('flexxter_full')?.checked;
                     
-                    // Check if a bundle checkbox is selected (even if the bundle isn't currently valid)
-                    const architektBundleSelected = document.getElementById('architekt')?.checked;
-                    const bauunternehmenBundleSelected = document.getElementById('baunternehmen')?.checked;
-                    const flexxterFullBundleSelected = document.getElementById('flexxter_full')?.checked;
-                    const hasSelectedBundleCheckbox = architektBundleSelected || bauunternehmenBundleSelected || flexxterFullBundleSelected;
-                    
-                    // Determine which bundle is selected (if any)
-                    let selectedBundle = null;
-                    if (architektBundleSelected) selectedBundle = 'architekt';
-                    else if (bauunternehmenBundleSelected) selectedBundle = 'baunternehmen';
-                    else if (flexxterFullBundleSelected) selectedBundle = 'flexxter_full';
-                    
-                    if (selectedBundle && window.pricingModel?.bundles?.[selectedBundle]) {
-                        const bundleAddons = window.pricingModel.bundles[selectedBundle].addons;
-                        const isPartOfBundle = bundleAddons.includes(checkbox.id);
-                        const isChecked = checkbox.checked;
+                    if (hasBundle) {
+                        let selectedBundle = null;
+                        if (document.getElementById('architekt')?.checked) selectedBundle = 'architekt';
+                        else if (document.getElementById('baunternehmen')?.checked) selectedBundle = 'baunternehmen';
+                        else if (document.getElementById('flexxter_full')?.checked) selectedBundle = 'flexxter_full';
                         
-                        // Case 1: Addon is part of the bundle and being unchecked - invalidate the bundle
-                        if (isPartOfBundle && !isChecked) {
-                            console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected`);
-                            // Deselect the bundle
-                            const bundleCheckbox = document.getElementById(selectedBundle);
-                            if (bundleCheckbox) {
-                                bundleCheckbox.checked = false;
-                                updateCheckboxVisual(bundleCheckbox, false);
-                                
-                                // Also hide the bundle price section
-                                if (bundleSection) {
-                                    bundleSection.style.display = 'none';
-                                }
-                            }
-                        } 
-                        // Case 2: Check if checkbox was reselected and all bundle addons are now selected
-                        else if (isPartOfBundle && isChecked) {
-                            // Check if all required addons for this bundle are now selected
-                            const allBundleAddonsSelected = bundleAddons.every(addonId => {
-                                const addonCheckbox = document.getElementById(addonId);
-                                return addonCheckbox && addonCheckbox.checked;
-                            });
+                        if (selectedBundle && window.pricingModel?.bundles?.[selectedBundle]) {
+                            // If this checkbox is part of the bundle and being unchecked, invalidate the bundle
+                            const bundleAddons = window.pricingModel.bundles[selectedBundle].addons;
+                            const isPartOfBundle = bundleAddons.includes(checkbox.id);
+                            const isChecked = checkbox.checked;
                             
-                            if (allBundleAddonsSelected) {
-                                console.log(`Reactivating bundle ${selectedBundle} because all required addons are now selected`);
-                                // Apply bundle display section
-                                if (bundleSection) {
-                                    bundleSection.style.display = 'block';
-                                }
-                            }
-                        }
-                    } 
-                    // Case 3: No bundle checkbox is selected, but check if all addons for a bundle are now selected
-                    else if (!hasSelectedBundleCheckbox) {
-                        // Check each bundle to see if all its addons are selected
-                        const bundles = ['architekt', 'baunternehmen', 'flexxter_full'];
-                        
-                        for (const bundleId of bundles) {
-                            if (window.pricingModel?.bundles?.[bundleId]) {
-                                const bundleAddons = window.pricingModel.bundles[bundleId].addons;
-                                // Check if this addon is part of the bundle
-                                const isPartOfBundle = bundleAddons.includes(checkbox.id);
-                                
-                                if (isPartOfBundle && checkbox.checked) {
-                                    // Check if all required addons for this bundle are selected
-                                    const allBundleAddonsSelected = bundleAddons.every(addonId => {
-                                        const addonCheckbox = document.getElementById(addonId);
-                                        return addonCheckbox && addonCheckbox.checked;
-                                    });
+                            if (isPartOfBundle && !isChecked) {
+                                console.log(`Deactivating bundle ${selectedBundle} because ${checkbox.id} was deselected`);
+                                bundleOperationInProgress = true;
+                                // Deselect the bundle
+                                const bundleCheckbox = document.getElementById(selectedBundle);
+                                if (bundleCheckbox) {
+                                    bundleCheckbox.checked = false;
+                                    updateCheckboxVisual(bundleCheckbox, false);
                                     
-                                    if (allBundleAddonsSelected) {
-                                        console.log(`Auto-selecting bundle ${bundleId} because all required addons are selected`);
-                                        // Auto-select the bundle
-                                        const bundleCheckbox = document.getElementById(bundleId);
-                                        if (bundleCheckbox && !bundleCheckbox.checked) {
-                                            // Select the bundle checkbox
-                                            bundleCheckbox.checked = true;
-                                            updateCheckboxVisual(bundleCheckbox, true);
-                                            
-                                            // Show the bundle price section
-                                            if (bundleSection) {
-                                                bundleSection.style.display = 'block';
-                                            }
-                                            
-                                            // Force yearly subscription for bundles
-                                            selectYearly();
-                                        }
+                                    // Also hide the bundle price section
+                                    if (bundleSection) {
+                                        bundleSection.style.display = 'none';
                                     }
                                 }
+                                
+                                // Use debounced refresh to avoid multiple API calls
+                                debouncedRefreshPricingForAddons();
+                                
+                                // Reset flag after a short delay
+                                setTimeout(() => {
+                                    bundleOperationInProgress = false;
+                                }, 250);
+                                return; // Exit early to avoid double API calls
                             }
                         }
                     }
                     
-                    // Use debounced refresh for all addon changes
+                    // Use debounced refresh for regular addon changes
                     debouncedRefreshPricingForAddons();
-                    
-                    // Reset flag after a short delay
-                    setTimeout(() => {
-                        bundleOperationInProgress = false;
-                    }, 250);
                 }
             };
             
@@ -1207,16 +1154,8 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSliderUI(element, value);
     }
     
-    // Helper function to check if yearly plan is selected
-    function isYearlyPlanSelected() {
-        return yearlyRadio.checked;
-    }
-    
     // Force yearly subscription selection
     function selectYearly() {
-        // Don't do anything if yearly is already selected
-        if (isYearlyPlanSelected()) return;
-        
         const yearlyWrapper = yearlyRadio.closest('.form_radio');
         const yearlyVisual = yearlyWrapper.querySelector('.w-radio-input');
         
@@ -1416,11 +1355,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             bundleSection.style.display = 'none';
                         }
                     }, 50);
-                } else if (selectedBundle) {
-                    // Make sure bundle price section is displayed if all conditions are met
-                    if (bundleSection && bundleSection.style.display !== 'block') {
-                        bundleSection.style.display = 'block';
-                    }
                 }
             }
             
