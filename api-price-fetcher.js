@@ -1214,7 +1214,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Instead of disabling MutationObservers by changing classes, we'll use a different approach
         
         // Set licenses to at least 2 for bundles (bundles require at least 2 licenses)
-        const licenseValue = Math.max(2, bundle.licences);
+        // Only set licenses to 2 if current value is less than 2, otherwise keep current value
+        const currentLicenses = parseInt(licencesInput?.textContent) || 1;
+        const licenseValue = (currentLicenses < 2) ? 2 : currentLicenses;
         updateSliderUI(licencesInput, licenseValue);
         
         // Set staff to at least 1
