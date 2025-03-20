@@ -422,11 +422,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 pricingData.apiResponse = {
                     monthly: {
                         monthly_price: monthlyData?.monthly_price || null,
+                        regular_monthly_price: monthlyData?.regular_monthly_price || monthlyData?.monthly_price || null,
                         yearly_price: monthlyData?.yearly_price || null
                     },
                     yearly: {
                         monthly_price: yearlyData?.monthly_price || null,
-                        yearly_price: yearlyData?.yearly_price || null
+                        yearly_price: yearlyData?.yearly_price || null,
+                        regular_monthly_price: yearlyData?.regular_monthly_price || yearlyData?.monthly_price || null,
+                        regular_yearly_price: yearlyData?.regular_yearly_price || yearlyData?.yearly_price || null
                     }
                 };
                 
@@ -1169,7 +1172,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 result = directPrice / 100;
                 console.log(`Using direct API price: ${result} € (${isYearlyChecked ? 'yearly plan, monthly payment' : 'monthly plan'})`);
                 
-                // If a bundle is selected, use the exact API price and apply the discount
+                // If a bundle is selected, use the exact API prices from the API response
                 if (selectedBundle) {
                     // Get discount percentage from bundle selection
                     if (selectedBundle === 'architekt') {
@@ -1180,11 +1183,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         savingsPercentage = 35;
                     }
                     
-                    // The full price is the API price without discount (we show this in "ohne Bundle")
-                    fullPrice = result;
+                    // Use the regular_monthly_price from the API for "ohne Bundle" price if available
+                    if (directData.regular_monthly_price) {
+                        fullPrice = directData.regular_monthly_price / 100;
+                        console.log(`Using API regular_monthly_price for ohne Bundle: ${fullPrice}€`);
+                    } else {
+                        // Fallback to calculating the full price based on the discount
+                        fullPrice = result / (1 - (savingsPercentage / 100));
+                        console.log(`Calculated ohne Bundle price: ${fullPrice}€`);
+                    }
                     
-                    // Apply the discount to get the actual price the user will pay
-                    result = result * (1 - (savingsPercentage / 100));
+                    // For bundles, the actual price is already discounted in the API response
+                    // so we don't need to apply discount again
                     
                     console.log(`Bundle selected: ${selectedBundle}, Discount: ${savingsPercentage}%`);
                     console.log(`Full price: ${fullPrice}€, Discounted price: ${result}€`);
