@@ -1000,58 +1000,74 @@ document.addEventListener("DOMContentLoaded", function () {
                     } 
                     // Case 3: No bundle checkbox is selected, but check if all addons for a bundle are now selected
                     else if (!hasSelectedBundleCheckbox) {
-                        // Check each bundle to see if all its addons are selected
-                        const bundles = ['architekt', 'baunternehmen', 'flexxter_full'];
+                        // Get all currently selected addons
+                        const selectedAddons = [];
+                        checkboxes.forEach(cb => {
+                            if (cb.checked) {
+                                selectedAddons.push(cb.id);
+                            }
+                        });
                         
-                        for (const bundleId of bundles) {
+                        console.log("Currently selected addons:", selectedAddons);
+                        
+                        // Bundle selection logic prioritizing more specific matches
+                        // Order matters: we check from most comprehensive to least
+                        const bundlesToCheck = ['flexxter_full', 'baunternehmen', 'architekt'];
+                        let bestMatchBundle = null;
+                        let bestMatchScore = 0;
+                        
+                        for (const bundleId of bundlesToCheck) {
                             if (window.pricingModel?.bundles?.[bundleId]) {
                                 const bundleAddons = window.pricingModel.bundles[bundleId].addons;
-                                // Check if this addon is part of the bundle
-                                const isPartOfBundle = bundleAddons.includes(checkbox.id);
                                 
-                                if (isPartOfBundle && checkbox.checked) {
-                                    // Check if all required addons for this bundle are selected
-                                    const allBundleAddonsSelected = bundleAddons.every(addonId => {
-                                        const addonCheckbox = document.getElementById(addonId);
-                                        return addonCheckbox && addonCheckbox.checked;
-                                    });
+                                // Check if all bundle addons are selected
+                                const allBundleAddonsSelected = bundleAddons.every(addonId => {
+                                    return selectedAddons.includes(addonId);
+                                });
+                                
+                                if (allBundleAddonsSelected) {
+                                    // Calculate how good a match this is
+                                    // How many addons in the bundle vs. how many extra addons selected
+                                    const bundleSize = bundleAddons.length;
+                                    const selectedSize = selectedAddons.length;
                                     
-                                    if (allBundleAddonsSelected) {
-                                        console.log(`Auto-selecting bundle ${bundleId} because all required addons are selected`);
-                                        
-                                        // First uncheck any existing bundles to ensure only one is selected
-                                        const otherBundles = ['architekt', 'baunternehmen', 'flexxter_full'].filter(b => b !== bundleId);
-                                        let anyBundleAlreadySelected = false;
-                                        
-                                        otherBundles.forEach(otherId => {
-                                            const otherCheckbox = document.getElementById(otherId);
-                                            if (otherCheckbox && otherCheckbox.checked) {
-                                                anyBundleAlreadySelected = true;
-                                                console.log(`Not auto-selecting ${bundleId} because ${otherId} is already selected`);
-                                            }
-                                        });
-                                        
-                                        // Only proceed if no other bundle is selected
-                                        if (!anyBundleAlreadySelected) {
-                                            // Auto-select the bundle
-                                            const bundleCheckbox = document.getElementById(bundleId);
-                                            if (bundleCheckbox && !bundleCheckbox.checked) {
-                                                // Select the bundle checkbox
-                                                bundleCheckbox.checked = true;
-                                                updateCheckboxVisual(bundleCheckbox, true);
-                                                
-                                                // Show the bundle price section
-                                                if (bundleSection) {
-                                                    bundleSection.style.display = 'block';
-                                                }
-                                                
-                                                // Force yearly subscription for bundles
-                                                selectYearly();
-                                            }
-                                        }
+                                    // Perfect match is better than partial match
+                                    // Larger bundle with all required addons is better than smaller one
+                                    const closenessScore = bundleSize * 100 - Math.abs(bundleSize - selectedSize);
+                                    
+                                    console.log(`Bundle ${bundleId} match score: ${closenessScore} (size: ${bundleSize}, selected: ${selectedSize})`);
+                                    
+                                    if (closenessScore > bestMatchScore) {
+                                        bestMatchBundle = bundleId;
+                                        bestMatchScore = closenessScore;
                                     }
+                                } else {
+                                    console.log(`Bundle ${bundleId} is missing some required addons`);
                                 }
                             }
+                        }
+                        
+                        // If we found a matching bundle, select it
+                        if (bestMatchBundle) {
+                            console.log(`Auto-selecting best matching bundle: ${bestMatchBundle} (score: ${bestMatchScore})`);
+                            
+                            // Auto-select the bundle
+                            const bundleCheckbox = document.getElementById(bestMatchBundle);
+                            if (bundleCheckbox && !bundleCheckbox.checked) {
+                                // Select the bundle checkbox
+                                bundleCheckbox.checked = true;
+                                updateCheckboxVisual(bundleCheckbox, true);
+                                
+                                // Show the bundle price section
+                                if (bundleSection) {
+                                    bundleSection.style.display = 'block';
+                                }
+                                
+                                // Force yearly subscription for bundles
+                                selectYearly();
+                            }
+                        } else {
+                            console.log("No matching bundle found for the current addon selection");
                         }
                     }
                     
