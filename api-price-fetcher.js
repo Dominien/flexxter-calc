@@ -969,10 +969,32 @@ document.addEventListener("DOMContentLoaded", function () {
                             
                             if (allBundleAddonsSelected) {
                                 console.log(`Reactivating bundle ${selectedBundle} because all required addons are now selected`);
+                                
+                                // Make sure the correct bundle is selected
+                                const bundleCheckbox = document.getElementById(selectedBundle);
+                                if (bundleCheckbox && !bundleCheckbox.checked) {
+                                    // Only one bundle should be checked at a time, so uncheck others first
+                                    const otherBundles = ['architekt', 'baunternehmen', 'flexxter_full'].filter(b => b !== selectedBundle);
+                                    otherBundles.forEach(otherId => {
+                                        const otherCheckbox = document.getElementById(otherId);
+                                        if (otherCheckbox && otherCheckbox.checked) {
+                                            otherCheckbox.checked = false;
+                                            updateCheckboxVisual(otherCheckbox, false);
+                                        }
+                                    });
+                                    
+                                    // Now select the proper bundle checkbox
+                                    bundleCheckbox.checked = true;
+                                    updateCheckboxVisual(bundleCheckbox, true);
+                                }
+                                
                                 // Apply bundle display section
                                 if (bundleSection) {
                                     bundleSection.style.display = 'block';
                                 }
+                                
+                                // Force yearly subscription for bundles
+                                selectYearly();
                             }
                         }
                     } 
@@ -996,20 +1018,36 @@ document.addEventListener("DOMContentLoaded", function () {
                                     
                                     if (allBundleAddonsSelected) {
                                         console.log(`Auto-selecting bundle ${bundleId} because all required addons are selected`);
-                                        // Auto-select the bundle
-                                        const bundleCheckbox = document.getElementById(bundleId);
-                                        if (bundleCheckbox && !bundleCheckbox.checked) {
-                                            // Select the bundle checkbox
-                                            bundleCheckbox.checked = true;
-                                            updateCheckboxVisual(bundleCheckbox, true);
-                                            
-                                            // Show the bundle price section
-                                            if (bundleSection) {
-                                                bundleSection.style.display = 'block';
+                                        
+                                        // First uncheck any existing bundles to ensure only one is selected
+                                        const otherBundles = ['architekt', 'baunternehmen', 'flexxter_full'].filter(b => b !== bundleId);
+                                        let anyBundleAlreadySelected = false;
+                                        
+                                        otherBundles.forEach(otherId => {
+                                            const otherCheckbox = document.getElementById(otherId);
+                                            if (otherCheckbox && otherCheckbox.checked) {
+                                                anyBundleAlreadySelected = true;
+                                                console.log(`Not auto-selecting ${bundleId} because ${otherId} is already selected`);
                                             }
-                                            
-                                            // Force yearly subscription for bundles
-                                            selectYearly();
+                                        });
+                                        
+                                        // Only proceed if no other bundle is selected
+                                        if (!anyBundleAlreadySelected) {
+                                            // Auto-select the bundle
+                                            const bundleCheckbox = document.getElementById(bundleId);
+                                            if (bundleCheckbox && !bundleCheckbox.checked) {
+                                                // Select the bundle checkbox
+                                                bundleCheckbox.checked = true;
+                                                updateCheckboxVisual(bundleCheckbox, true);
+                                                
+                                                // Show the bundle price section
+                                                if (bundleSection) {
+                                                    bundleSection.style.display = 'block';
+                                                }
+                                                
+                                                // Force yearly subscription for bundles
+                                                selectYearly();
+                                            }
                                         }
                                     }
                                 }
