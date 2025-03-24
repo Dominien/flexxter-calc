@@ -1,6 +1,15 @@
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("FlexXter calculator ready to initialize...");
+    console.log("Initializing FlexXter calculator with API pricing...");
     
+    // Additional event listener to immediately fix slider values when DOM loads
+    setTimeout(() => {
+        if (licencesInput && parseInt(licencesInput.textContent) < 1) {
+            updateSliderUI(licencesInput, 1);
+        }
+        if (staffInput && parseInt(staffInput.textContent) < 1) {
+            updateSliderUI(staffInput, 1);
+        }
+    }, 100); // Small delay to ensure sliders are fully initialized
     // Configuration for the FlexXter API
     const API_CONFIG = {
         baseUrl: "https://www.flexxter.de/GetPrice/php",
@@ -35,6 +44,8 @@ document.addEventListener("DOMContentLoaded", function () {
         API_CONFIG.reverseAddonMapping[domId] = apiKey;
     }
 
+    // No cache is used - all requests go directly to the API
+
     // DOM elements references 
     const licencesInput = document.querySelector('[calculator-licences]');
     const staffInput = document.querySelector('[calculator-stuff]');
@@ -44,156 +55,118 @@ document.addEventListener("DOMContentLoaded", function () {
     const bundleSection = document.querySelector('.calculator_result-wrapper.bundle');
     const ohneBundlePrice = document.getElementById('ohne-bundle');
     
-    // Initialize basic slider functionality immediately
-    initBasicUI();
-    
-    // Flags to prevent multiple API calls during operations
-    let isApplyingBundle = false;
-    let bundleOperationInProgress = false;
-    let calculatorInitialized = false;
-    
     // Create and insert a direct script tag to force slider values to 1 immediately
     // and set yearly option checked by default
-    function initBasicUI() {
-        const initScript = document.createElement('script');
-        initScript.innerHTML = `
-        // Execute immediately to set values before any other code runs
-        (function() {
-            // Find the slider elements
-            const licencesInput = document.querySelector('[calculator-licences]');
-            const staffInput = document.querySelector('[calculator-stuff]');
-            
-            // Set text contents to "1"
-            if (licencesInput) licencesInput.textContent = "1";
-            if (staffInput) staffInput.textContent = "1";
-            
-            // Force update of aria values too
-            const updateSliderNow = function(element) {
-                if (!element) return;
-                const handle = element.closest('[fs-rangeslider-element="wrapper"]')?.querySelector('[fs-rangeslider-element="handle"]');
-                if (handle) {
-                    handle.setAttribute('aria-valuenow', 1);
-                    const displayValue = handle.querySelector('[fs-rangeslider-element="display-value"]');
-                    if (displayValue) displayValue.textContent = "1";
-                }
-            };
-            
-            // Apply to both sliders
-            updateSliderNow(licencesInput);
-            updateSliderNow(staffInput);
-            
-            // Set yearly option checked by default
-            const yearlyRadio = document.querySelector('input[is-yearly]');
-            const monthlyRadio = document.querySelector('input[value="Monatlich"]');
-            
-            if (yearlyRadio && monthlyRadio) {
-                // Set the yearly radio to checked
-                yearlyRadio.checked = true;
-                monthlyRadio.checked = false;
-                
-                // Update the visual state
-                const yearlyVisual = yearlyRadio.closest('.form_radio').querySelector('.w-radio-input');
-                const monthlyVisual = monthlyRadio.closest('.form_radio').querySelector('.w-radio-input');
-                
-                if (yearlyVisual && monthlyVisual) {
-                    yearlyVisual.classList.add('w--redirected-checked');
-                    monthlyVisual.classList.remove('w--redirected-checked');
-                }
-            }
-            
-            console.log("Basic UI initialized");
-        })();
-        `;
-        document.head.appendChild(initScript);
+    const initScript = document.createElement('script');
+    initScript.innerHTML = `
+    // Execute immediately to set values before any other code runs
+    (function() {
+        // Find the slider elements
+        const licencesInput = document.querySelector('[calculator-licences]');
+        const staffInput = document.querySelector('[calculator-stuff]');
         
-        // Additional event listener to immediately fix slider values when DOM loads
-        setTimeout(() => {
-            if (licencesInput && parseInt(licencesInput.textContent) < 1) {
-                updateSliderUI(licencesInput, 1);
-            }
-            if (staffInput && parseInt(staffInput.textContent) < 1) {
-                updateSliderUI(staffInput, 1);
-            }
-        }, 100); // Small delay to ensure sliders are fully initialized
+        // Set text contents to "1"
+        if (licencesInput) licencesInput.textContent = "1";
+        if (staffInput) staffInput.textContent = "1";
         
-        // Add event listeners for initialization on user interaction
-        addInitializationTriggers();
-    }
-    
-    // Add event listeners that will initialize the calculator when user interacts with controls
-    function addInitializationTriggers() {
-        // Elements that should trigger initialization
-        const triggerElements = [
-            licencesInput,
-            staffInput,
-            ...checkboxes,
-            yearlyRadio,
-            document.querySelector('input[value="Monatlich"]')
-        ].filter(el => el); // Filter out nulls
-        
-        // Bundle checkbox triggers
-        const bundleCheckboxes = [
-            document.getElementById('architekt'),
-            document.getElementById('baunternehmen'),
-            document.getElementById('flexxter_full')
-        ].filter(el => el);
-        
-        triggerElements.push(...bundleCheckboxes);
-        
-        // Event handler function that starts initialization
-        const initHandler = function() {
-            if (!calculatorInitialized) {
-                console.log("User interaction detected, initializing calculator...");
-                calculatorInitialized = true;
-                
-                // Remove all initialization event listeners
-                triggerElements.forEach(el => {
-                    el.removeEventListener('click', initHandler);
-                    el.removeEventListener('change', initHandler);
-                    
-                    // For sliders, we need to handle their wrappers
-                    if (el === licencesInput || el === staffInput) {
-                        const wrapper = el.closest('[fs-rangeslider-element="wrapper"]');
-                        if (wrapper) {
-                            wrapper.removeEventListener('mousedown', initHandler);
-                            wrapper.removeEventListener('touchstart', initHandler);
-                        }
-                    }
-                });
-                
-                // Initialize the calculator
-                initializeCalculator();
+        // Force update of aria values too
+        const updateSliderNow = function(element) {
+            if (!element) return;
+            const handle = element.closest('[fs-rangeslider-element="wrapper"]')?.querySelector('[fs-rangeslider-element="handle"]');
+            if (handle) {
+                handle.setAttribute('aria-valuenow', 1);
+                const displayValue = handle.querySelector('[fs-rangeslider-element="display-value"]');
+                if (displayValue) displayValue.textContent = "1";
             }
         };
         
-        // Add event listeners to all trigger elements
-        triggerElements.forEach(el => {
-            el.addEventListener('click', initHandler);
-            el.addEventListener('change', initHandler);
-            
-            // For sliders, we need a different event as they don't generate clicks directly
-            if (el === licencesInput || el === staffInput) {
-                const wrapper = el.closest('[fs-rangeslider-element="wrapper"]');
-                if (wrapper) {
-                    wrapper.addEventListener('mousedown', initHandler);
-                    wrapper.addEventListener('touchstart', initHandler);
-                }
-            }
-        });
+        // Apply to both sliders
+        updateSliderNow(licencesInput);
+        updateSliderNow(staffInput);
         
-        // Preload the calculator after a delay if no user interaction
-        setTimeout(() => {
-            if (!calculatorInitialized) {
-                console.log("No user interaction detected, lazy loading calculator...");
-                calculatorInitialized = true;
-                initializeCalculator();
+        // Set yearly option checked by default
+        const yearlyRadio = document.querySelector('input[is-yearly]');
+        const monthlyRadio = document.querySelector('input[value="Monatlich"]');
+        
+        if (yearlyRadio && monthlyRadio) {
+            // Set the yearly radio to checked
+            yearlyRadio.checked = true;
+            monthlyRadio.checked = false;
+            
+            // Update the visual state
+            const yearlyVisual = yearlyRadio.closest('.form_radio').querySelector('.w-radio-input');
+            const monthlyVisual = monthlyRadio.closest('.form_radio').querySelector('.w-radio-input');
+            
+            if (yearlyVisual && monthlyVisual) {
+                yearlyVisual.classList.add('w--redirected-checked');
+                monthlyVisual.classList.remove('w--redirected-checked');
             }
-        }, 3000); // 3 second delay before lazy initialization
+        }
+        
+        console.log("Immediate slider and yearly radio fix applied");
+    })();
+    `;
+    document.head.appendChild(initScript);
+    
+    // Price calculator initialization
+    async function initializeCalculator() {
+        try {
+            // Show loading state
+            displayLoadingState(true);
+            
+            // Set initial values for licenses and staff to 1
+            setInitialValues();
+            
+            // Setup event listeners first so they're ready when needed
+            setupEventListeners();
+            
+            // Get the pricing data for initial state
+            const pricingData = await fetchPricingData();
+            
+            // Initialize calculator with fetched data
+            setupCalculator(pricingData);
+            
+            // Hide loading state
+            displayLoadingState(false);
+            
+            // Initial calculation
+            updateResult();
+            
+            console.log("Price calculator initialized with FlexXter API data");
+        } catch (error) {
+            handleApiError(error);
+        }
+    }
+    
+    // Function to set initial values for licenses and staff
+    function setInitialValues() {
+        // Set yearly option checked by default
+        selectYearly();
+        
+        // Set licenses to 1
+        if (licencesInput) {
+            // Update the displayed text value
+            licencesInput.textContent = "1";
+            
+            // Also update the slider visually
+            updateSliderUI(licencesInput, 1);
+        }
+        
+        // Set staff to 1
+        if (staffInput) {
+            // Update the displayed text value
+            staffInput.textContent = "1";
+            
+            // Also update the slider visually
+            updateSliderUI(staffInput, 1);
+        }
     }
     
     // Helper function to update slider UI with proper positioning
     function updateSliderUI(element, value) {
         if (!element) return;
+        
+        console.log(`Updating slider for ${element.getAttribute('calculator-licences') ? 'licenses' : 'staff'} to ${value}`);
         
         // Make sure value is at least 1
         value = Math.max(1, value);
@@ -234,61 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
             handle.querySelector('[fs-rangeslider-element="display-value"]').textContent = value.toString();
         }
     }
-    
-    // Price calculator initialization - only called after user interaction or timeout
-    async function initializeCalculator() {
-        try {
-            // Show loading state
-            displayLoadingState(true);
-            
-            // Set initial values for licenses and staff to 1
-            setInitialValues();
-            
-            // Setup event listeners first so they're ready when needed
-            setupEventListeners();
-            
-            // Get the pricing data for initial state
-            const pricingData = await fetchPricingData();
-            
-            // Initialize calculator with fetched data
-            setupCalculator(pricingData);
-            
-            // Hide loading state
-            displayLoadingState(false);
-            
-            // Initial calculation
-            updateResult();
-            
-            console.log("Price calculator fully initialized with FlexXter API data");
-        } catch (error) {
-            handleApiError(error);
-        }
-    }
-    
-    // Function to set initial values for licenses and staff
-    function setInitialValues() {
-        // Set yearly option checked by default
-        selectYearly();
-        
-        // Set licenses to 1
-        if (licencesInput) {
-            // Update the displayed text value
-            licencesInput.textContent = "1";
-            
-            // Also update the slider visually
-            updateSliderUI(licencesInput, 1);
-        }
-        
-        // Set staff to 1
-        if (staffInput) {
-            // Update the displayed text value
-            staffInput.textContent = "1";
-            
-            // Also update the slider visually
-            updateSliderUI(staffInput, 1);
-        }
-    }
-    
+
     // Function to refresh pricing data based on UI selections
     async function refreshPricingData() {
         try {
@@ -1279,6 +1198,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
+    // Flags to prevent multiple API calls during operations
+    let isApplyingBundle = false;
+    let bundleOperationInProgress = false;
+    
     // Apply selected bundle
     function applyBundle(bundleId) {
         if (!window.pricingModel || !window.pricingModel.bundles) return;
@@ -1668,10 +1591,20 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
     
+    // Initialize the calculator when the page loads
+    initializeCalculator();
+    
     // Extra enforcement for slider values
     setTimeout(() => {
         console.log("Extra slider position enforcement");
         if (licencesInput) updateSliderUI(licencesInput, Math.max(1, parseInt(licencesInput.textContent) || 0));
         if (staffInput) updateSliderUI(staffInput, Math.max(1, parseInt(staffInput.textContent) || 0));
+        
+        // Initialize bundle section based on current payment selection
+        const monthlyRadio = document.querySelector('input[value="Monatlich"]');
+        if (monthlyRadio && typeof updateBundleSection === 'function') {
+            const isMonthly = monthlyRadio.checked;
+            updateBundleSection(isMonthly);
+        }
     }, 500);
 });
