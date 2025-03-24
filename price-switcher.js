@@ -42,6 +42,17 @@ document.addEventListener("DOMContentLoaded", function () {
         document.querySelector('.price_switcher._2cond') || 
         document.querySelector('.price_switcher.top-one')) {
         
+        // Immediately hide monthly card and show yearly card before any other code runs
+        const monthlyCard = document.querySelector('.price_cards .price_left.monat');
+        if (monthlyCard) {
+            monthlyCard.style.display = 'none';
+        }
+        
+        const yearlyCard = document.querySelector('.price_cards .price_right.year');
+        if (yearlyCard) {
+            yearlyCard.style.display = 'block';
+        }
+        
         // Only add minimal styles immediately for visual stability
         addMinimalStyles();
         
@@ -61,6 +72,13 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             .price_table-cell:nth-child(3) {
                 display: none;
+            }
+            /* Initial card visibility - hide monthly, show yearly */
+            .price_cards .price_left.monat {
+                display: none;
+            }
+            .price_cards .price_right.year {
+                display: block;
             }
         `;
         document.head.appendChild(styleElement);
