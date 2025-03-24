@@ -1,74 +1,173 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // Add CSS for smooth animations
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-        /* Smooth transitions for price tables and cells */
-        .price_table-row,
-        .price_table-cell,
-        .price_swithcer-grab {
-            transition: all 0.3s ease-in-out;
-        }
-        
-        /* Card animations */
-        .price_left,
-        .price_right {
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .price_left.fade-out,
-        .price_right.fade-out {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        
-        .price_left.hidden,
-        .price_right.hidden {
-            display: none;
-        }
-        
-        /* Animation helpers */
-        .animate-card {
-            animation: fadeInUp 0.3s forwards;
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
+    // Deferred initialization pattern - only execute when elements are needed
+    let stylesAdded = false;
+    let initialized = false;
+    
+    // Main DOM elements - these will be null until initialized
+    let priceTableRows;
+    let bottomPriceSwitcher;
+    let bottomYearlyText;
+    let bottomMonthlyText;
+    let topPriceSwitcher;
+    let topYearlyText;
+    let topMonthlyText;
+    let monthlyCard;
+    let yearlyCard;
+    let syncInProgress = false;
+    
+    // Add a single initialization event listener to the document that will trigger on first scroll or user interaction
+    function addInitListeners() {
+        const initializeOnEvent = function() {
+            if (!initialized) {
+                initialize();
+                document.removeEventListener('scroll', initializeOnEvent);
+                document.removeEventListener('mousemove', initializeOnEvent);
+                document.removeEventListener('click', initializeOnEvent);
+                document.removeEventListener('touchstart', initializeOnEvent);
             }
-            to {
+        };
+        
+        // Add event listeners to initialize on user interaction or scroll
+        document.addEventListener('scroll', initializeOnEvent, { passive: true });
+        document.addEventListener('mousemove', initializeOnEvent, { passive: true });
+        document.addEventListener('click', initializeOnEvent, { passive: true });
+        document.addEventListener('touchstart', initializeOnEvent, { passive: true });
+        
+        // Fallback - initialize after a delay even if no user interaction
+        setTimeout(initializeOnEvent, 2500);
+    }
+    
+    // Check if any price table or switcher exists on the page - if not, don't even add listeners
+    if (document.querySelector('.price_table-row') || 
+        document.querySelector('.price_switcher._2cond') || 
+        document.querySelector('.price_switcher.top-one')) {
+        
+        // Only add minimal styles immediately for visual stability
+        addMinimalStyles();
+        
+        // Add event listeners for lazy initialization
+        addInitListeners();
+    }
+    
+    // Add minimal styles immediately to prevent layout shifts
+    function addMinimalStyles() {
+        if (stylesAdded) return;
+        
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            /* Minimal styles for initial rendering */
+            .price_table-row {
+                grid-template-columns: 3fr 1fr;
+            }
+            .price_table-cell:nth-child(3) {
+                display: none;
+            }
+        `;
+        document.head.appendChild(styleElement);
+        
+        stylesAdded = true;
+    }
+    
+    // Main initialization function - only called when needed
+    function initialize() {
+        if (initialized) return;
+        
+        // Add full CSS for animations and transitions
+        addStyles();
+        
+        // Initialize all DOM references
+        initDomReferences();
+        
+        // Set up price table switcher
+        if (priceTableRows && priceTableRows.length > 0 && bottomPriceSwitcher) {
+            initBottomSwitcher();
+        }
+        
+        // Set up top price card switcher
+        if (topPriceSwitcher && monthlyCard && yearlyCard) {
+            initTopSwitcher();
+        }
+        
+        initialized = true;
+        console.log("Price switcher initialized");
+    }
+    
+    // Initialize DOM references - only called when needed
+    function initDomReferences() {
+        priceTableRows = document.querySelectorAll('.price_table-row');
+        bottomPriceSwitcher = document.querySelector('.price_switcher._2cond');
+        
+        if (bottomPriceSwitcher) {
+            bottomYearlyText = bottomPriceSwitcher.previousElementSibling; // [switcher-text-1]
+            bottomMonthlyText = bottomPriceSwitcher.nextElementSibling; // [switcher-text-2]
+        }
+        
+        topPriceSwitcher = document.querySelector('.price_switcher.top-one');
+        
+        if (topPriceSwitcher) {
+            topYearlyText = topPriceSwitcher.previousElementSibling; // [switcher-text-1]
+            topMonthlyText = topPriceSwitcher.nextElementSibling; // [switcher-text-2]
+        }
+        
+        monthlyCard = document.querySelector('.price_cards .price_left.monat');
+        yearlyCard = document.querySelector('.price_cards .price_right.year');
+    }
+    
+    // Add full styles for animations and transitions
+    function addStyles() {
+        if (stylesAdded) return;
+        
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            /* Smooth transitions for price tables and cells */
+            .price_table-row,
+            .price_table-cell,
+            .price_swithcer-grab {
+                transition: all 0.3s ease-in-out;
+            }
+            
+            /* Card animations */
+            .price_left,
+            .price_right {
+                transition: opacity 0.3s ease, transform 0.3s ease;
                 opacity: 1;
                 transform: translateY(0);
             }
-        }
-    `;
-    document.head.appendChild(styleElement);
-
-    //--------------------------------------------------
-    // PRICE TABLE ADJUSTMENTS
-    //--------------------------------------------------
-    // Change grid template and hide yearly prices initially
-    const priceTableRows = document.querySelectorAll('.price_table-row');
-    priceTableRows.forEach(row => {
-        row.style.gridTemplateColumns = '3fr 1fr';
+            
+            .price_left.fade-out,
+            .price_right.fade-out {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            
+            .price_left.hidden,
+            .price_right.hidden {
+                display: none;
+            }
+            
+            /* Animation helpers */
+            .animate-card {
+                animation: fadeInUp 0.3s forwards;
+            }
+            
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(styleElement);
         
-        // Hide yearly price column (the third column)
-        const yearlyPriceCell = row.querySelector('.price_table-cell:nth-child(3)');
-        if (yearlyPriceCell) {
-            yearlyPriceCell.style.display = 'none';
-        }
-    });
+        stylesAdded = true;
+    }
     
-    // Bottom price switcher functionality (for the pricing table)
-    const bottomPriceSwitcher = document.querySelector('.price_switcher._2cond');
-    let bottomYearlyText, bottomMonthlyText;
-    
-    if (bottomPriceSwitcher) {
-        bottomYearlyText = bottomPriceSwitcher.previousElementSibling; // [switcher-text-1]
-        bottomMonthlyText = bottomPriceSwitcher.nextElementSibling; // [switcher-text-2]
-        
+    // Initialize bottom price table switcher
+    function initBottomSwitcher() {
         let isYearly = true; // Start with yearly pricing
         
         // Set initial state
@@ -110,38 +209,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
             
-            // Update price display
-            priceTableRows.forEach(row => {
-                // Get both price cells
-                const monthlyCellContent = row.querySelector('.price_table-cell.is-small.is-center .text-weight-semibold');
-                const yearlyCellContent = row.querySelector('.price_table-cell.is-small:not(.is-center) .text-weight-bold');
-                
-                // Skip if this row doesn't have price content
-                if (!monthlyCellContent || !yearlyCellContent) return;
-                
-                // Show the appropriate price based on selection
-                if (isYearly) {
-                    // Show yearly price (discount price)
-                    monthlyCellContent.textContent = yearlyCellContent.textContent;
-                } else {
-                    // Find the original monthly price (might need to store this somewhere)
-                    // For now, we can parse from the current text if it contains a price
-                    const originalText = monthlyCellContent.getAttribute('data-original');
-                    if (originalText) {
-                        monthlyCellContent.textContent = originalText;
-                    }
-                }
+            // Update price display - using requestAnimationFrame for better performance
+            requestAnimationFrame(() => {
+                updatePriceDisplay(isYearly);
             });
-            
-            // Store original monthly prices on first click
-            if (!document.querySelector('[data-original]')) {
-                priceTableRows.forEach(row => {
-                    const monthlyCellContent = row.querySelector('.price_table-cell.is-small.is-center .text-weight-semibold');
-                    if (monthlyCellContent) {
-                        monthlyCellContent.setAttribute('data-original', monthlyCellContent.textContent);
-                    }
-                });
-            }
             
             // Sync top switcher with bottom switcher state if it exists
             if (topPriceSwitcher && !syncInProgress) {
@@ -153,31 +224,48 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Initialize to yearly pricing without toggling the state
         // First store the original monthly prices
+        storePriceData();
+        
+        // Apply yearly prices by default
+        updatePriceDisplay(true);
+    }
+    
+    // Store original price data for later use
+    function storePriceData() {
         priceTableRows.forEach(row => {
             const monthlyCellContent = row.querySelector('.price_table-cell.is-small.is-center .text-weight-semibold');
-            const yearlyCellContent = row.querySelector('.price_table-cell.is-small:not(.is-center) .text-weight-bold');
-            
-            if (monthlyCellContent && yearlyCellContent) {
+            if (monthlyCellContent && !monthlyCellContent.getAttribute('data-original')) {
                 monthlyCellContent.setAttribute('data-original', monthlyCellContent.textContent);
-                // Apply yearly prices by default
-                monthlyCellContent.textContent = yearlyCellContent.textContent;
             }
         });
     }
     
-    //--------------------------------------------------
-    // TOP PRICE CARD SWITCHER FUNCTIONALITY
-    //--------------------------------------------------
-    const topPriceSwitcher = document.querySelector('.price_switcher.top-one');
-    let topYearlyText, topMonthlyText;
-    const monthlyCard = document.querySelector('.price_cards .price_left.monat');
-    const yearlyCard = document.querySelector('.price_cards .price_right.year');
-    let syncInProgress = false;
+    // Update price display based on selected payment period
+    function updatePriceDisplay(isYearly) {
+        priceTableRows.forEach(row => {
+            // Get both price cells
+            const monthlyCellContent = row.querySelector('.price_table-cell.is-small.is-center .text-weight-semibold');
+            const yearlyCellContent = row.querySelector('.price_table-cell.is-small:not(.is-center) .text-weight-bold');
+            
+            // Skip if this row doesn't have price content
+            if (!monthlyCellContent || !yearlyCellContent) return;
+            
+            // Show the appropriate price based on selection
+            if (isYearly) {
+                // Show yearly price (discount price)
+                monthlyCellContent.textContent = yearlyCellContent.textContent;
+            } else {
+                // Find the original monthly price from stored data
+                const originalText = monthlyCellContent.getAttribute('data-original');
+                if (originalText) {
+                    monthlyCellContent.textContent = originalText;
+                }
+            }
+        });
+    }
     
-    if (topPriceSwitcher) {
-        topYearlyText = topPriceSwitcher.previousElementSibling; // [switcher-text-1]
-        topMonthlyText = topPriceSwitcher.nextElementSibling; // [switcher-text-2]
-        
+    // Initialize top price card switcher
+    function initTopSwitcher() {
         let isYearly = true; // Start with yearly pricing
         
         // Set initial state
@@ -193,74 +281,18 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         // Set initial card visibility
-        if (monthlyCard && yearlyCard) {
-            monthlyCard.classList.add('hidden');
-            yearlyCard.classList.remove('hidden');
-            yearlyCard.classList.add('animate-card');
-        }
+        monthlyCard.classList.add('hidden');
+        yearlyCard.classList.remove('hidden');
+        yearlyCard.classList.add('animate-card');
         
         // Add click event to the switcher
         topPriceSwitcher.addEventListener('click', function() {
             isYearly = !isYearly;
             
-            // Update switcher visuals
-            if (isYearly) {
-                // Yearly selected
-                topYearlyText.classList.add('text-color-blue');
-                topYearlyText.classList.remove('text-color-gray');
-                topMonthlyText.classList.add('text-color-gray');
-                topMonthlyText.classList.remove('text-color-blue');
-                
-                if (grabElement) {
-                    grabElement.style.transform = 'translateX(0)';
-                }
-                
-                // Show yearly card, hide monthly card with animation
-                if (monthlyCard && yearlyCard) {
-                    // First remove any previous animation classes
-                    yearlyCard.classList.remove('animate-card');
-                    monthlyCard.classList.remove('animate-card');
-                    
-                    // Add fade-out class to monthly card
-                    monthlyCard.classList.add('fade-out');
-                    
-                    // After a short delay, hide monthly and show yearly with animation
-                    setTimeout(() => {
-                        monthlyCard.classList.add('hidden');
-                        monthlyCard.classList.remove('fade-out');
-                        yearlyCard.classList.remove('hidden');
-                        yearlyCard.classList.add('animate-card');
-                    }, 300);
-                }
-            } else {
-                // Monthly selected
-                topYearlyText.classList.add('text-color-gray');
-                topYearlyText.classList.remove('text-color-blue');
-                topMonthlyText.classList.add('text-color-blue');
-                topMonthlyText.classList.remove('text-color-gray');
-                
-                if (grabElement) {
-                    grabElement.style.transform = 'translateX(100%)';
-                }
-                
-                // Show monthly card, hide yearly card with animation
-                if (monthlyCard && yearlyCard) {
-                    // First remove any previous animation classes
-                    yearlyCard.classList.remove('animate-card');
-                    monthlyCard.classList.remove('animate-card');
-                    
-                    // Add fade-out class to yearly card
-                    yearlyCard.classList.add('fade-out');
-                    
-                    // After a short delay, hide yearly and show monthly with animation
-                    setTimeout(() => {
-                        yearlyCard.classList.add('hidden');
-                        yearlyCard.classList.remove('fade-out');
-                        monthlyCard.classList.remove('hidden');
-                        monthlyCard.classList.add('animate-card');
-                    }, 300);
-                }
-            }
+            // Update switcher visuals with requestAnimationFrame for performance
+            requestAnimationFrame(() => {
+                updateTopSwitcherVisuals(isYearly, grabElement);
+            });
             
             // Sync bottom switcher with top switcher state if it exists
             if (bottomPriceSwitcher && !syncInProgress) {
@@ -269,6 +301,67 @@ document.addEventListener("DOMContentLoaded", function () {
                 syncInProgress = false;
             }
         });
+    }
+    
+    // Update top switcher visuals based on selected payment period
+    function updateTopSwitcherVisuals(isYearly, grabElement) {
+        if (isYearly) {
+            // Yearly selected
+            topYearlyText.classList.add('text-color-blue');
+            topYearlyText.classList.remove('text-color-gray');
+            topMonthlyText.classList.add('text-color-gray');
+            topMonthlyText.classList.remove('text-color-blue');
+            
+            if (grabElement) {
+                grabElement.style.transform = 'translateX(0)';
+            }
+            
+            // Show yearly card, hide monthly card with animation
+            if (monthlyCard && yearlyCard) {
+                // First remove any previous animation classes
+                yearlyCard.classList.remove('animate-card');
+                monthlyCard.classList.remove('animate-card');
+                
+                // Add fade-out class to monthly card
+                monthlyCard.classList.add('fade-out');
+                
+                // After a short delay, hide monthly and show yearly with animation
+                setTimeout(() => {
+                    monthlyCard.classList.add('hidden');
+                    monthlyCard.classList.remove('fade-out');
+                    yearlyCard.classList.remove('hidden');
+                    yearlyCard.classList.add('animate-card');
+                }, 300);
+            }
+        } else {
+            // Monthly selected
+            topYearlyText.classList.add('text-color-gray');
+            topYearlyText.classList.remove('text-color-blue');
+            topMonthlyText.classList.add('text-color-blue');
+            topMonthlyText.classList.remove('text-color-gray');
+            
+            if (grabElement) {
+                grabElement.style.transform = 'translateX(100%)';
+            }
+            
+            // Show monthly card, hide yearly card with animation
+            if (monthlyCard && yearlyCard) {
+                // First remove any previous animation classes
+                yearlyCard.classList.remove('animate-card');
+                monthlyCard.classList.remove('animate-card');
+                
+                // Add fade-out class to yearly card
+                yearlyCard.classList.add('fade-out');
+                
+                // After a short delay, hide yearly and show monthly with animation
+                setTimeout(() => {
+                    yearlyCard.classList.add('hidden');
+                    yearlyCard.classList.remove('fade-out');
+                    monthlyCard.classList.remove('hidden');
+                    monthlyCard.classList.add('animate-card');
+                }, 300);
+            }
+        }
     }
     
     // Helper function to sync switchers
