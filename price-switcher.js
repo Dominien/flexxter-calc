@@ -45,6 +45,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     `;
     document.head.appendChild(styleElement);
+    
+    // Update the Laufzeit text based on the price switcher selection
+    const updateLaufzeitText = () => {
+        const laufzeitElement = document.getElementById('Laufzeit-depending-switch');
+        const priceSwitcher = document.querySelector('.price_switcher._2cond');
+        
+        if (laufzeitElement && priceSwitcher) {
+            const grabElement = priceSwitcher.querySelector('.price_swithcer-grab');
+            const isYearly = !grabElement || grabElement.style.transform === 'translateX(0px)' || grabElement.style.transform === '';
+            
+            if (isYearly) {
+                laufzeitElement.innerHTML = 'Laufzeit<br>12 Monate';
+            } else {
+                laufzeitElement.innerHTML = 'Laufzeit<br>1 Monat';
+            }
+        }
+    };
 
     //--------------------------------------------------
     // PRICE TABLE ADJUSTMENTS
@@ -149,6 +166,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     grabElement.style.transform = 'translateX(100%)';
                 }
             }
+            
+            // Update Laufzeit text when bottom switcher changes
+            updateLaufzeitText();
             
             // Update price display
             priceTableRows.forEach(row => {
@@ -284,6 +304,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 syncSwitchers(bottomPriceSwitcher, isYearly);
                 syncInProgress = false;
             }
+            
+            // Update Laufzeit text based on current selection
+            updateLaufzeitText();
         });
     }
     
@@ -298,4 +321,7 @@ document.addEventListener("DOMContentLoaded", function () {
             switcherToClick.click();
         }
     }
+    
+    // Call updateLaufzeitText initially to set the correct initial text
+    updateLaufzeitText();
 });
